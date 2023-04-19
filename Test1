@@ -1,0 +1,34 @@
+library(httr)
+
+get_last_modified_date <- function(site_url, keyword) {
+  
+  # Send a GET request to the site
+  response <- GET(site_url)
+  
+  # Check if the response was successful (i.e., status code is between 200 and 299)
+  if (http_error(response$status_code)) {
+    stop(paste("Error: failed to retrieve content from", site_url))
+  }
+  
+  # Extract the content of the response
+  site_content <- content(response, "text")
+  
+  # Search the content for the keyword
+  keyword_matches <- grep(keyword, site_content, ignore.case = TRUE)
+  
+  # Check if the keyword was found
+  if (length(keyword_matches) == 0) {
+    stop(paste("Error: no matches found for keyword", keyword, "in", site_url))
+  }
+  
+  # Extract the "Last-Modified" header from the response
+  last_modified <- headers(response)$`last-modified`
+  
+  # Check if the "Last-Modified" header is present
+  if (is.null(last_modified)) {
+    stop(paste("Error: no 'Last-Modified' header found in response from", site_url))
+  }
+  
+  # Return the "Last-Modified" date
+  return(last_modified)
+}
