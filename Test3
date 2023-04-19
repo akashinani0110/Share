@@ -1,0 +1,29 @@
+library(RSelenium)
+
+fetch_tab_content <- function(site_url, tab_name) {
+  
+  # Start a new Selenium server and open a Firefox browser
+  rD <- rsDriver(browser = "firefox")
+  remDr <- rD[["client"]]
+  
+  # Navigate to the website
+  remDr$navigate(site_url)
+  
+  # Find the tab by its name and click on it
+  tab_xpath <- paste0("//a[text() = '", tab_name, "']")
+  tab_element <- remDr$findElement(using = "xpath", value = tab_xpath)
+  tab_element$clickElement()
+  
+  # Wait for the content to load
+  Sys.sleep(5)
+  
+  # Get the content of the tab
+  tab_content <- remDr$getPageSource()[[1]]
+  
+  # Close the browser and stop the Selenium server
+  remDr$close()
+  rD$server$stop()
+  
+  # Return the content of the tab
+  return(tab_content)
+}
