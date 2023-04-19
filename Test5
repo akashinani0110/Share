@@ -1,0 +1,55 @@
+library(shiny)
+library(DT)
+
+ui <- fluidPage(
+  titlePanel("Dashboard Updates"),
+  DTOutput("dashboard_table")
+)
+
+server <- function(input, output) {
+  
+  output$dashboard_table <- renderDT({
+    
+    # create the data table
+    dashboard_data <- data.frame(
+      dashboard_name = c("Dashboard A", "Dashboard B", "Dashboard C", "Dashboard D"),
+      responsible_person = c("John", "Jane", "Bob", "Mary"),
+      last_updated_on = c("2022-01-01", "2022-02-15", "2022-03-10", "2022-04-01"),
+      required_update_in_days = c(30, 60, 90, 120)
+    )
+    
+    # calculate the number of days since last update
+    dashboard_data$days_since_last_update <- as.numeric(difftime(Sys.Date(), dashboard_data$last_updated_on, units = "days"))
+    
+    # calculate whether the update is overdue or not
+    dashboard_data$update_overdue <- ifelse(dashboard_data$required_update_in_days < dashboard_data$days_since_last_update, "yes", "no")
+    
+    # color the rows based on whether the update is overdue or not
+    dashboard_color <- ifelse(dashboard_data$update_overdue == "yes", "red", "green")
+    
+    datatable(
+      dashboard_data,
+      options = list(
+        columnDefs = list(list(targets = "_all", className = "dt-center")),
+        pageLength = 10,
+        lengthMenu = c(10, 25, 50),
+        autoWidth = TRUE
+      ),
+      class = "cell-border stripe",
+      rownames = FALSE,
+      rowCallback = JS("
+        function(row, data, index) {
+          if (data[4] < data[3]) {
+            $(row).addClass('table-danger');
+          } else {
+            $(row).addClass('table-success');
+          }
+        }
+      ")
+    )
+    
+  })
+  
+}
+
+shinyApp(ui, server)
