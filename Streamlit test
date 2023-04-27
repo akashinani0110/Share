@@ -1,0 +1,33 @@
+import streamlit as st
+import pandas as pd
+
+# Set up the logo image
+logo_url = "https://yourlogo.com/logo.png"
+
+# Define a function to create the badge based on the status
+def create_badge(status):
+    if status == "running":
+        return '<span class="badge badge-success">Running</span>'
+    elif status == "update pending":
+        return '<span class="badge badge-warning">Update Pending</span>'
+    elif status == "under maintenance":
+        return '<span class="badge badge-danger">Under Maintenance</span>'
+
+# Define the data
+data = {
+    'Title': ['Title 1', 'Title 2', 'Title 3'],
+    'Date': ['2023-04-25', '2023-04-26', '2023-04-27'],
+    'Status': ['running', 'update pending', 'under maintenance']
+}
+df = pd.DataFrame(data)
+
+# Set up the app header
+st.set_page_config(page_title='Your App', page_icon=logo_url)
+st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+st.write('<div align="right"><img src="' + logo_url + '"></div>', unsafe_allow_html=True)
+st.title('Your App')
+
+# Render the data table
+df['Title'] = df.apply(lambda row: '<a href="https://yourdomain.com/' + row['Title'] + '">' + row['Title'] + '</a>', axis=1)
+df['Status'] = df['Status'].apply(create_badge)
+st.dataframe(df, escape=False)
