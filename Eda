@@ -1,0 +1,78 @@
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(readr)
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("BI Report"),
+  sidebarLayout(
+    sidebarPanel(
+      fileInput("file", "Upload CSV file", accept = ".csv")
+    ),
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Summary Table", tableOutput("summaryTable")),
+        tabPanel("Scatter Plot", plotOutput("scatterPlot")),
+        tabPanel("Bar Chart", plotOutput("barChart")),
+        tabPanel("Line Chart", plotOutput("lineChart")),
+        tabPanel("Grouped Bar Chart", plotOutput("groupedBarChart")),
+        tabPanel("Stacked Area Chart", plotOutput("stackedAreaChart"))
+      )
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output) {
+  data <- reactive({
+    req(input$file)
+    read_csv(input$file$datapath)
+  })
+  
+  output$summaryTable <- renderTable({
+    data()
+  })
+  
+  output$scatterPlot <- renderPlot({
+    ggplot(data(), aes(x = expectation_in_dollar, y = expected_participants)) +
+      geom_point() +
+      labs(x = "Expectation in Dollar", y = "Expected Participants") +
+      theme_minimal()
+  })
+  
+  output$barChart <- renderPlot({
+    ggplot(data(), aes(x = plan_name, y = actual_in_dollar)) +
+      geom_bar(stat = "identity", fill = "steelblue") +
+      labs(x = "Plan Name", y = "Actual in Dollar") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  })
+  
+  output$lineChart <- renderPlot({
+    ggplot(data(), aes(x = as.Date(Date), y = actual_participation, group = 1)) +
+      geom_line() +
+      labs(x = "Date", y = "Actual Participation") +
+      theme_minimal() +
+      scale_x_date(date_labels = "%Y-%m-%d")
+  })
+  
+  output$groupedBarChart <- renderPlot({
+    grouped_data <- data() %>%
+      group_by(plan_name) %>%
+      summarize(total_actual_in_dollar = sum(actual_in_dollar))
+    
+    ggplot(grouped_data, aes(x = plan_name, y = total_actual_in_dollar, fill = plan_name)) +
+      geom_bar(stat = "identity") +
+      labs(x = "Plan Name", y = "Total Actual in Dollar") +
+      theme_minimal() +
+      theme(legend.position = "none") +
+      coord_flip()
+  })
+  
+  output$stackedAreaChart <- renderPlot({
+    stacked_data <- data() %>%
+      group_by(as.Date(Date)) %>%
+      summarize(total_actual_participation = sum(actual_participation))
+    
+    ggplot(stacked_data, aes(x = as.Date(Date), y = total_actual_participation, fill = as.Date(Date))) +
