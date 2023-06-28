@@ -1,0 +1,11 @@
+tabPanel("Summary Table", tableOutput("summaryTable")),
+        tabPanel("Scatter Plot", plotOutput("scatterPlot")),
+        tabPanel("Bar Chart", plotOutput("barChart")),
+        tabPanel("Line Chart", plotOutput("lineChart")),
+        tabPanel("Grouped Bar Chart", plotOutput("groupedBarChart")),
+        tabPanel("Stacked Area Chart", plotOutput("stackedAreaChart")),
+        tabPanel("Expectation vs. Actual", plotOutput("expectationActual")),
+        tabPanel("Expectation Participation vs. Actual Participation", plotOutput("expActPart")),
+        tabPanel("Actual in Dollar vs. Actual Participants", plotOutput("actualDollarPart")),
+        tabPanel("Expectation in Dollar vs. Expectation Participation", plotOutput("expDollarPart"))
+      )
