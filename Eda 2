@@ -1,0 +1,13 @@
+output$stackedAreaChart <- renderPlot({
+    stacked_data <- data() %>%
+      group_by(as.Date(Date)) %>%
+      summarize(total_actual_participation = sum(actual_participation))
+    
+    ggplot(stacked_data, aes(x = as.Date(Date), y = total_actual_participation, fill = as.Date(Date))) +
+      geom_area() +
+      labs(x = "Date", y = "Total Actual Participation") +
+      theme_minimal() +
+      scale_x_date(date_labels = "%Y-%m-%d") +
+      guides(fill = FALSE)
+  })
+}
