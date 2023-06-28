@@ -1,0 +1,28 @@
+  output$expectationActual <- renderPlot({
+    ggplot(data(), aes(x = expectation_in_dollar, y = actual_in_dollar)) +
+      geom_point() +
+      labs(x = "Expectation in Dollar", y = "Actual in Dollar") +
+      theme_minimal()
+  })
+
+  output$expActPart <- renderPlot({
+    ggplot(data(), aes(x = expected_participants, y = actual_participation)) +
+      geom_point() +
+      labs(x = "Expectation Participation", y = "Actual Participation") +
+      theme_minimal()
+  })
+
+  output$actualDollarPart <- renderPlot({
+    ggplot(data(), aes(x = actual_in_dollar, y = actual_participants)) +
+      geom_point() +
+      labs(x = "Actual in Dollar", y = "Actual Participants") +
+      theme_minimal()
+  })
+
+  output$expDollarPart <- renderPlot({
+    ggplot(data(), aes(x = expectation_in_dollar, y = expected_participants)) +
+      geom_point() +
+      labs(x = "Expectation in Dollar", y = "Expectation Participation") +
+      theme_minimal()
+  })
+}
