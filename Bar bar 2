@@ -1,0 +1,43 @@
+ui <- fluidPage(
+  titlePanel("Horizontal Bar Plot"),
+  sidebarLayout(
+    sidebarPanel(),
+    mainPanel(
+      plotlyOutput("barplot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$barplot <- renderPlotly({
+    # Sample data
+    data <- data.frame(
+      PlanName = c("Plan A", "Plan B", "Plan C"),
+      PlanAmount = c(100, 200, 150),
+      PlanParticipation = c(80, 120, 90),
+      ActualAmount = c(120, 180, 150),
+      ActualParticipation = c(100, 140, 110)
+    )
+    
+    # Create a horizontal bar plot using plot_ly
+    plot_ly(data) %>%
+      add_trace(x = ~PlanAmount, y = ~PlanName,
+                name = "Plan Amount", type = "bar",
+                orientation = "h", marker = list(color = I("blue"))) %>%
+      add_trace(x = ~ActualAmount, y = ~PlanName,
+                name = "Actual Amount", type = "bar",
+                orientation = "h", marker = list(color = I("green"))) %>%
+      add_trace(x = ~PlanParticipation, y = ~PlanName,
+                name = "Plan Participation", type = "bar",
+                orientation = "h", marker = list(color = I("orange"))) %>%
+      add_trace(x = ~ActualParticipation, y = ~PlanName,
+                name = "Actual Participation", type = "bar",
+                orientation = "h", marker = list(color = I("purple"))) %>%
+      layout(title = "Comparison of Amount and Participation",
+             xaxis = list(title = "Value"),
+             yaxis = list(title = "Plan Name"),
+             barmode = "group")
+  })
+}
+
+shinyApp(ui, server)
