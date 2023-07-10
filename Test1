@@ -1,0 +1,28 @@
+ui <- fluidPage(
+  titlePanel("Horizontal Bar Plot"),
+  sidebarLayout(
+    sidebarPanel(),
+    mainPanel(
+      plotlyOutput("barplot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$barplot <- renderPlotly({
+    # Sample data
+    data <- data.frame(
+      PlanName = c("Plan A", "Plan B", "Plan C"),
+      Amount = c(100, 200, 150)
+    )
+    
+    # Create a horizontal bar plot using plot_ly
+    plot_ly(data, x = ~Amount, y = ~PlanName, type = "bar",
+            orientation = "h", color = I("blue")) %>%
+      layout(title = "Horizontal Bar Plot",
+             xaxis = list(title = "Amount"),
+             yaxis = list(title = "Plan Name"))
+  })
+}
+
+shinyApp(ui, server)
