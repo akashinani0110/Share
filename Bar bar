@@ -1,0 +1,10 @@
+plot_ly
+    plot_ly(data, x = ~ActualAmount, y = ~PlanName, type = "bar",
+            name = "Actual Amount", orientation = "h") %>%
+      add_trace(x = ~ActualParticipation, name = "Actual Participation",
+                orientation = "h") %>%
+      layout(title = "Actual Amount and Actual Participation",
+             xaxis = list(title = "Value"),
+             yaxis = list(title = "Plan Name"),
+             barmode = "group")
+  })
