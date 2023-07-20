@@ -1,0 +1,37 @@
+import requests
+from bs4 import BeautifulSoup
+import time
+
+def get_last_update():
+    # URL of the dashboard
+    dashboard_url = "http://30.248.115.140:8501"
+
+    # Set the password
+    password = "GWIMCIO"
+
+    # Perform an HTTP GET request to the dashboard URL
+    response = requests.get(dashboard_url)
+
+    # Parse the HTML content using BeautifulSoup
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # Find the password input field and submit the password
+    pw_input = soup.select_one('input[aria-label="Password"]')
+    if pw_input:
+        pw_input["value"] = password
+
+    # Wait for a few seconds (if required) for the page to process the password
+    time.sleep(2)
+
+    # Find the element containing the last update information
+    last_update_elements = soup.select('div[data-testid="stMarkdownContainer"]')
+
+    if last_update_elements:
+        last_update_text = last_update_elements[0].text
+        return last_update_text.strip()
+
+    return None
+
+# Call the function to get the last update text
+last_update_text = get_last_update()
+print(last_update_text)
