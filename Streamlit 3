@@ -1,0 +1,62 @@
+import requests
+from bs4 import BeautifulSoup
+
+def fetch_details(url, username, password):
+    # Create a session to maintain cookies across requests
+    session = requests.Session()
+
+    try:
+        # Send GET request to the login page to get necessary cookies and CSRF token
+        login_page_response = session.get(url)
+        login_page_soup = BeautifulSoup(login_page_response.text, "html.parser")
+
+        # Extract the CSRF token from the login page (replace with the actual input name)
+        csrf_token = login_page_soup.find("input", {"name": "csrf_token"})["value"]
+
+        # Login payload with the CSRF token and credentials (replace with actual form field names)
+        login_payload = {
+            "csrf_token": csrf_token,
+            "username": username,
+            "password": password,
+        }
+
+        # Send POST request to the login endpoint with login credentials
+        login_endpoint = "https://example.com/login_endpoint"  # Replace with the actual login endpoint
+        login_response = session.post(login_endpoint, data=login_payload)
+
+        # Check if login was successful (you may need to adjust this check based on your website's behavior)
+        if "Login successful" in login_response.text:
+            # Now, you can access protected pages or fetch details
+            protected_page_url = "https://example.com/protected_page"  # Replace with the actual URL of the protected page
+            protected_page_response = session.get(protected_page_url)
+
+            # Parse the protected page using BeautifulSoup
+            protected_page_soup = BeautifulSoup(protected_page_response.text, "html.parser")
+
+            # Extract and return the desired details from the protected page (replace with appropriate details)
+            details = protected_page_soup.find_all("div", class_="detail-info")
+            return details
+
+        else:
+            print("Login failed. Please check your credentials.")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    url = "https://example.com"  # Replace with the base URL of the website
+    username = "your_username"
+    password = "your_password"
+
+    details = fetch_details(url, username, password)
+
+    if details:
+        print("Details fetched successfully:")
+        for detail in details:
+            print(detail.get_text())
+    else:
+        print("Failed to fetch details.")
