@@ -1,0 +1,38 @@
+# Install and load necessary packages
+install.packages("RSelenium")
+library(RSelenium)
+
+# Set the password
+password <- "GWIMCIO"
+
+# Start the Selenium Server
+rD <- rsDriver(browser = "chrome", chromever = "latest", port = 4567L)
+remDr <- rD$client
+
+# Navigate to the dashboard URL
+dashboard_url <- "http://30.248.115.140:8501"
+remDr$navigate(dashboard_url)
+
+# Find the password input field and submit the password
+pw_input <- remDr$findElement(using = "css selector", value = 'input[aria-label="Password"]')
+pw_input$sendKeysToElement(list(password, key = "enter"))
+
+# Wait for a few seconds (if required) for the page to process the password
+Sys.sleep(2)
+
+# Find the element containing the last update information
+last_update_elements <- remDr$findElements(using = "css selector", value = 'div[data-testid="stMarkdownContainer"]')
+
+if (length(last_update_elements) > 0) {
+  last_update_text <- last_update_elements[[1]]$getElementText()[[1]]
+  last_update_text <- trimws(last_update_text)
+} else {
+  last_update_text <- NULL
+}
+
+# Close the browser
+remDr$close()
+rD$server$stop()
+
+# Print the last update text
+print(last_update_text)
