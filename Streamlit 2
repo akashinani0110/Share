@@ -1,0 +1,57 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from bs4 import BeautifulSoup
+import time
+
+def fetch_details(url, username, password):
+    # Initialize Chrome webdriver
+    driver = webdriver.Chrome()
+
+    try:
+        # Open the URL in the browser
+        driver.get(url)
+        time.sleep(2)  # Wait for the page to load
+
+        # Find the login button and click on it
+        login_button = driver.find_element_by_id("login-button")  # Replace with the actual ID of the login button
+        login_button.click()
+        time.sleep(2)  # Wait for the login page to load
+
+        # Find the username and password fields and enter credentials
+        username_field = driver.find_element_by_name("username")  # Replace with the actual name of the username field
+        password_field = driver.find_element_by_name("password")  # Replace with the actual name of the password field
+        username_field.send_keys(username)
+        password_field.send_keys(password)
+
+        # Submit the form (assuming the login button is of type "submit")
+        login_form = driver.find_element_by_id("login-form")  # Replace with the actual ID of the login form
+        login_form.submit()
+        time.sleep(5)  # Wait for the page to load after login
+
+        # Fetch the page source after login and parse with BeautifulSoup
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, "html.parser")
+
+        # Extract and return the desired details from the parsed HTML
+        details = soup.find_all("div", class_="detail-info")  # Replace with the actual HTML elements containing details
+        return details
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    url = "https://example.com"  # Replace with the actual URL of the website
+    username = "your_username"
+    password = "your_password"
+
+    details = fetch_details(url, username, password)
+
+    if details:
+        print("Details fetched successfully:")
+        for detail in details:
+            print(detail.get_text())
+    else:
+        print("Failed to fetch details.")
