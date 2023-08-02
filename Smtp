@@ -1,0 +1,41 @@
+import smtplib
+from email.mime.text import MIMEText
+
+def send_email(sender_email, sender_password, recipient_email, subject, message):
+    # SMTP server settings for Outlook
+    smtp_server = "smtp-mail.outlook.com"
+    smtp_port = 587
+
+    # Create a message object
+    msg = MIMEText(message)
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+
+    try:
+        # Establish a connection with the SMTP server
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+
+        # Log in to your email account
+        server.login(sender_email, sender_password)
+
+        # Send the email
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+
+        # Close the connection
+        server.quit()
+
+        print("Email sent successfully!")
+    except Exception as e:
+        print("Error sending email:", e)
+
+# Example usage:
+# Replace the placeholder email and password with your actual credentials.
+sender_email = "your_outlook_email@outlook.com"
+sender_password = "your_outlook_password"
+recipient_email = "recipient@example.com"
+subject = "Test Email"
+message = "This is a test email sent from Python using an Outlook account."
+
+send_email(sender_email, sender_password, recipient_email, subject, message)
