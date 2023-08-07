@@ -1,0 +1,21 @@
+library(dplyr)
+
+query_csv <- function(csv_file, query) {
+  # Read the CSV file
+  data <- read.csv(csv_file)
+  
+  # Perform the query using dplyr
+  result <- data %>% filter(!!rlang::parse_expr(query))
+  
+  return(result)
+}
+
+
+csv_file <- "path/to/your/csv/file.csv"
+query_string <- "age >= 25 & gender == 'Male'"
+result <- query_csv(csv_file, query_string)
+
+
+
+
+
