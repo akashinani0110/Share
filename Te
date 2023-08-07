@@ -1,0 +1,59 @@
+library(shiny)
+library(DT)
+
+# Sample data
+data <- data.frame(
+  name_id = c(2, 1, 3),
+  name = c("John", "Alice", "Bob"),
+  school_id = c(3, 2, 1),
+  school = c("Oxford", "Harvard", "Amity"),
+  value1 = c(1234567, 9876543, 5432109),
+  value2 = c(456789, 876543, 123456),
+  value3 = c(78901, 23456, 78901)
+)
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("Display Table with Custom Formatting and Sorting"),
+  dataTableOutput("table")
+)
+
+# Define server logic
+server <- function(input, output) {
+  output$table <- renderDataTable({
+    # Format numerical columns with commas
+    formatted_data <- data
+    num_cols <- sapply(formatted_data, is.numeric)
+    formatted_data[num_cols] <- lapply(formatted_data[num_cols], scales::comma)
+    
+    # Display the table using DT
+    datatable(
+      formatted_data,
+      options = list(ordering = TRUE),
+      extensions = "Buttons",
+      filter = "top",
+      class = "display",
+      callback = JS("table.columns().every(function () {
+                     var column = this;
+                     var select = $('<select><option value=\"\"></option></select>')
+                         .appendTo($(column.footer()).empty())
+                         .on('change', function () {
+                             var val = $.fn.dataTable.util.escapeRegex(
+                                 $(this).val()
+                             );
+ 
+                             column
+                                 .search(val ? '^'+val+'$' : '', true, false)
+                                 .draw();
+                         });
+ 
+                     column.data().unique().sort().each(function (d, j) {
+                         select.append('<option value=\"'+d+'\">'+d+'</option>')
+                     });
+                 });")
+    )
+  })
+}
+
+# Run the app
+shinyApp(ui = ui, server = server)
