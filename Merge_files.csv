@@ -1,0 +1,22 @@
+fetch_and_rename_csv <- function(folder_path) {
+  # Get list of CSV files in the folder
+  csv_files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+  
+  for (csv_file in csv_files) {
+    # Check if the file name contains "read"
+    if (!grepl("read", basename(csv_file), ignore.case = TRUE)) {
+      # Read the CSV file
+      data <- read.csv(csv_file)
+      
+      # Create the new file name by appending "read" to the original name
+      new_file_name <- gsub("\\.csv$", "_read.csv", basename(csv_file))
+      new_file_path <- file.path(dirname(csv_file), new_file_name)
+      
+      # Write the data to the new CSV file
+      write.csv(data, new_file_path, row.names = FALSE)
+      
+      # Print a message to indicate the file has been processed
+      cat("File", csv_file, "has been read and renamed to", new_file_name, "\n")
+    }
+  }
+}
