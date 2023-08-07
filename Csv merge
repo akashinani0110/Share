@@ -1,0 +1,17 @@
+library(dplyr)
+
+merge_csv_files <- function(folder_path) {
+  # Get list of CSV files in the folder
+  csv_files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+  
+  # Initialize an empty data frame
+  merged_data <- data.frame()
+  
+  # Loop through each CSV file and merge into the data frame
+  for (csv_file in csv_files) {
+    data <- read.csv(csv_file)
+    merged_data <- bind_rows(merged_data, data)
+  }
+  
+  return(merged_data)
+}
