@@ -1,0 +1,33 @@
+library(shiny)
+library(DT)
+
+# Sample data
+data <- data.frame(
+  id = 1:3,
+  name = c("Akash", "John", "Emily"),
+  school = c("Amity", "Harvard", "Oxford")
+)
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("Display Sorted Schools by Name"),
+  DTOutput("table")
+)
+
+# Define server logic
+server <- function(input, output) {
+  output$table <- renderDT({
+    # Sort the data frame by the 'school' column (sorting based on 'id')
+    sorted_data <- data[order(data$school), ]
+    
+    # Display the 'name' and 'school' columns
+    datatable(sorted_data[, c("name", "school")],
+              options = list(
+                columnDefs = list(list(targets = 1, visible = FALSE))
+              )
+    )
+  })
+}
+
+# Run the app
+shinyApp(ui = ui, server = server)
