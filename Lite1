@@ -1,0 +1,116 @@
+library(DBI)
+library(RSQLite)
+
+generate_sql_query <- function(params_list) {
+  # Connect to SQLite database
+  con <- dbConnect(RSQLite::SQLite(), dbname = params_list$database)
+  
+  # Construct WHERE clauses based on the provided list
+  where_clauses <- lapply(params_list$where_clauses, function(where_params) {
+    paste0(where_params$parameter, " ", where_params$operator, " '", where_params$value, "'")
+  })
+  
+  # Combine WHERE clauses with logical operators
+  combined_where_clause <- paste(unlist(where_clauses), collapse = params_list$logical_operator)
+  
+  # Construct the full SQL query
+  sql_query <- paste("SELECT * FROM", params_list$table, "WHERE", combined_where_clause)
+  
+  # Execute the query
+  result <- dbGetQuery(con, sql_query)
+  
+  # Disconnect from SQLite database
+  dbDisconnect(con)
+  
+  return(result)
+}
+
+
+params <- list(
+  database = "path_to_database.db",
+  table = "your_table_name",
+  where_clauses = list(
+    list(parameter = "column_name1", operator = ">", value = "c"),
+    list(parameter = "column_name2", operator = "IN", value = "c,v")
+  ),
+  logical_operator = "AND"  # Customize logical operator here
+)
+
+query_result <- generate_sql_query(params)
+
+
+
+
+get_csv_files <- function(year) {
+  folder_path <- paste0("/path/to/parent/folder/", year)
+  csv_files <- list.files(path = folder_path, pattern = ".csv", full.names = TRUE)
+  return(csv_files)
+}
+
+
+
+
+library(RPerforce)
+
+get_perforce_history <- function(prefix) {
+  # Connect to Perforce server
+  p4 <- p4()
+  
+  # Run the "p4 files" command to get history based on prefix
+  files <- p4$files(prefix = prefix)
+  
+  # Disconnect from Perforce
+  p4$disconnect()
+  
+  return(files)
+}
+
+
+library(DBI)
+library(RSQLite)
+
+push_csv_to_sqlite <- function(csv_folder, sqlite_db_path, table_name) {
+  # Connect to SQLite database
+  con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_db_path)
+  
+  # Get a list of CSV files in the folder
+  csv_files <- list.files(path = csv_folder, pattern = ".csv", full.names = TRUE)
+  
+  for (csv_file in csv_files) {
+    # Read CSV file
+    data <- read.csv(csv_file)
+    
+    # Push data to SQLite database
+    dbWriteTable(con, name = table_name, value = data, append = TRUE)
+  }
+  
+  # Disconnect from SQLite database
+  dbDisconnect(con)
+}
+
+
+library(DBI)
+library(RSQLite)
+
+custom_query_sqlite <- function(sqlite_db_path, query) {
+  # Connect to SQLite database
+  con <- dbConnect(RSQLite::SQLite(), dbname = sqlite_db_path)
+  
+  # Execute the custom query
+  result <- dbGetQuery(con, query)
+  
+  # Disconnect from SQLite database
+  dbDisconnect(con)
+  
+  return(result)
+}
+
+
+
+
+
+
+
+
+
+
