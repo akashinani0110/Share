@@ -1,0 +1,26 @@
+library(DBI)
+library(RSQLite)
+library(stringr)
+
+# Connect to SQLite database
+con <- dbConnect(RSQLite::SQLite(), dbname = "output_database.db")
+
+# List all .RData files in the folder
+rdata_files <- list.files(path = "path_to_folder", pattern = "\\.RData$", full.names = TRUE)
+
+# Loop through each .RData file
+for (rdata_file in rdata_files) {
+  load(rdata_file)  # Load the .RData file
+  
+  # Extract date from the file name
+  file_date <- str_extract(rdata_file, "\\d{2}_\\d{2}_\\d{4}")
+  
+  # Add date column to the data
+  data$date <- file_date
+  
+  # Write data to SQLite database
+  dbWriteTable(con, name = "your_table_name", value = data, append = TRUE)
+}
+
+# Disconnect from SQLite database
+dbDisconnect(con)
