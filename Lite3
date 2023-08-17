@@ -1,0 +1,19 @@
+library(DBI)
+library(RSQLite)
+
+# Connect to SQLite database
+con <- dbConnect(RSQLite::SQLite(), dbname = "output_database.db")
+
+# List all .RData files in the folder
+rdata_files <- list.files(path = "path_to_folder", pattern = "\\.RData$", full.names = TRUE)
+
+# Loop through each .RData file and insert its data into the database
+for (rdata_file in rdata_files) {
+  load(rdata_file)  # Load the .RData file
+  
+  # Assuming the object name in the .RData file is "data"
+  dbWriteTable(con, name = "your_table_name", value = data, append = TRUE)
+}
+
+# Disconnect from SQLite database
+dbDisconnect(con)
