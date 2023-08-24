@@ -1,0 +1,35 @@
+library(dplyr)
+
+# Load your dataset
+your_dataset <- read.csv("path_to_your_dataset.csv")
+
+# Find all column pairs that start with "Included_" and "Weight_"
+all_columns <- names(your_dataset)
+column_pairs <- lapply(all_columns, function(col) {
+  if (startsWith(col, "Included_")) {
+    weight_col <- sub("Included_", "Weight_", col)
+    if (weight_col %in% all_columns) {
+      return(c(col, weight_col))
+    }
+  }
+  return(NULL)
+}) %>%
+  Filter(Negate(is.null), .)
+
+# Filter rows that meet the condition for each column pair
+filtered_dataset <- your_dataset
+
+for (pair in column_pairs) {
+  included_col <- pair[1]
+  weight_col <- pair[2]
+  
+  filtered_dataset <- filtered_dataset %>%
+    filter(
+      (get(included_col) == TRUE & get(weight_col) > 0) |
+      (get(included_col) == FALSE) |
+      is.na(get(included_col))
+    )
+}
+
+# Save the filtered dataset
+write.csv(filtered_dataset, "filtered_dataset.csv", row.names = FALSE)
