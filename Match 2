@@ -1,0 +1,51 @@
+library(dplyr)
+
+# Load your datasets
+dataset_with_id <- read.csv("path_to_dataset_with_id.csv")
+other_dataset <- read.csv("path_to_other_dataset.csv")
+
+# Create a function to generate IDs based on combination of columns
+generate_id <- function(row) {
+  paste(row$Business_channel, row$Asset_Schema, row$Tax_sensitivity, row$Profile, row$Type,
+        row$Included_Inflation, row$Included_cash, row$` Inciuded US Equity`, row$`Included Us _LCG`,
+        row$`Included_US_LCV`, row$`Included_US_SCG`, row$`Included Us SCUM`, row$`Included_US_LC`,
+        row$`Included _Us MC`, row$`Included_US_SC`, row$Included_Intl_Dev, row$Included_Intl_EM,
+        row$`Included_North_America`, row$`Included Europe_ex_UK`, row$Included_UK, row$Included_Japan,
+        row$`Included_Pac_ex_Jp`, row$`Included US sec Energy`, row$`Included_US_Sec_Materials`,
+        row$`Included_US_Sec_Industrials`, row$`Included_US_Sec_cons_Disc`,
+        row$`Included_US_Sec_Cons_Stap`, row$`Included_US_Sec_Healthcare`,
+        row$`Included_Us_Sec_Financials`, row$`Included_Us_sec_Info_Tech`,
+        row$`Included_US_Sec_Telecom`, row$`Included_Us_sec_Utilities`,
+        row$`Included_US_sec_Real_Estate`, row$`Included_US_Fixed_Income`,
+        row$`Included_US_Corp`, row$`Included_US_Govt`, row$`Included_US_Mtge`,
+        row$`Included_US_HY`, row$`Included Intl Fixed Income`, row$`Included_Global_Govt`,
+        row$`Included_Global_Corp`, row$`Included_Global_Mtge`,
+        row$`Included Global _HY_EM^`, row$`Included_IG_Taxable`,
+        row$`Included_IG_Tax_exempt`, row$`Included_global_HY`,
+        row$`Included_HY_Tax_exempt`, row$`Included_US_Trsy_1_3`,
+        row$`Included_US_Trsy_3_10`, row$`Included_US_Trsy_10_plus`,
+        row$`Included_US_Muni_1_3`, row$`Included_US_Muni_3_10`,
+        row$`Included_US_Muni_10_plus`, row$`Included_IG_Taxable_1_5`,
+        row$`Included_IG_Taxable_5_15`, row$`Included_IG_Taxable_15_plus`,
+        row$Included_CPLT, row$Included_STRIPs, row$`Included_Corp_10_plus`,
+        row$Included_Hedge_Funds, row$`Included_HF_RV'`, row$`Included_HF_MN'`,
+        row$`Included HF ED'`, row$`Included_HF_Macro`, row$`Included_H_ELS`,
+        row$Included_Private_Equity, row$Included_Tangible_Assets,
+        row$Included_Farmland, row$`Included Real _Assets`,
+        row$`Included_Real _Estate`, row$Included_Timberland,
+        row$Included_AI_Composite, row$`Included _BIG_1_10`,
+        row$`Included_BIG_10 plus`, row$Included_Trsy_1_10,
+        row$Included_Trsy_10_plus, row$`Included_Corp_1_10`,
+        row$`Included_BIG`, row$Included_Trsy,
+        row$Included_Corp, sep = "_")
+}
+
+# Add IDs from dataset_with_id to other_dataset based on matching column combinations
+other_dataset_with_ids <- other_dataset %>%
+  mutate(ID = generate_id(.)) %>%
+  mutate(ID = ifelse(row_number(ID) %in% row_number(dataset_with_id[dataset_with_id$ID %in% ID, ]$ID),
+                     dataset_with_id[dataset_with_id$ID %in% ID, ]$ID[match(ID, dataset_with_id$ID)],
+                     NA))
+
+# Save the 'other_dataset' with added IDs
+write.csv(other_dataset_with_ids, "other_dataset_with_ids.csv", row.names = FALSE)
