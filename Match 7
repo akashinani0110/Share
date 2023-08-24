@@ -1,0 +1,29 @@
+library(dplyr)
+
+# Load your dataset
+your_dataset <- read.csv("path_to_your_dataset.csv")
+
+# List of column pairs: included_column, weight_column
+column_pairs <- list(
+  c("included_cash", "weight_cash"),
+  c("included_sum", "weight_sum"),
+  # Add more column pairs as needed
+)
+
+# Filter rows that meet the condition for each column pair
+filtered_dataset <- your_dataset
+
+for (pair in column_pairs) {
+  included_col <- pair[1]
+  weight_col <- pair[2]
+  
+  filtered_dataset <- filtered_dataset %>%
+    filter(
+      (get(included_col) == TRUE & get(weight_col) > 0) |
+      (get(included_col) == FALSE) |
+      is.na(get(included_col))
+    )
+}
+
+# Save the filtered dataset
+write.csv(filtered_dataset, "filtered_dataset.csv", row.names = FALSE)
