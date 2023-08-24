@@ -1,0 +1,16 @@
+library(dplyr)
+
+# Load your dataset
+your_dataset <- read.csv("path_to_your_dataset.csv")
+
+filtered_dataset <- your_dataset %>%
+  mutate(Result = case_when(
+    starts_with("included_") & get(paste0("weight_", substring(names(.), 10))) > 0 ~ as.character(get(paste0("weight_", substring(names(.), 10)))),
+    starts_with("included_") & is.na(get(paste0("weight_", substring(names(.), 10)))) ~ "NA",
+    starts_with("included_") & get(paste0("weight_", substring(names(.), 10))) <= 0 ~ "0",
+    TRUE ~ ""
+  )) %>%
+  filter(Result %in% c("0", "NA") | !is.na(Result))
+
+# Save the filtered dataset
+write.csv(filtered_dataset, "filtered_dataset.csv", row.names = FALSE)
