@@ -1,0 +1,28 @@
+# Load your dataset
+your_dataset <- read.csv("path_to_your_dataset.csv")
+
+# Define a function to apply your conditions
+apply_conditions <- function(included, weight) {
+  if (is.na(included)) {
+    return(NA)
+  } else if (included) {
+    if (weight > 0) {
+      return(weight)
+    } else {
+      return(0)
+    }
+  } else {
+    return(0)
+  }
+}
+
+# Apply the function to each row
+included_columns <- grep("^included_", names(your_dataset), value = TRUE)
+weight_columns <- grep("^weight_", names(your_dataset), value = TRUE)
+result_columns <- mapply(apply_conditions, your_dataset[included_columns], your_dataset[weight_columns])
+
+# Add the result to the dataset
+your_dataset$Result <- result_columns
+
+# Save the filtered dataset
+write.csv(your_dataset, "filtered_dataset.csv", row.names = FALSE)
