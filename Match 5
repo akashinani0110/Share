@@ -1,0 +1,25 @@
+library(dplyr)
+
+# Load your dataset
+your_dataset <- read.csv("path_to_your_dataset.csv")
+
+# Define a function to apply your conditions
+apply_conditions <- function(included, weight) {
+  if (is.na(included)) {
+    return("NA")
+  } else if (included) {
+    return(ifelse(weight > 0, as.character(weight), "0"))
+  } else {
+    return("0")
+  }
+}
+
+# Apply the function to each row
+filtered_dataset <- your_dataset %>%
+  mutate(Result = mapply(apply_conditions, 
+                         .[grepl("^included_", names(.))], 
+                         .[grepl("^weight_", names(.))])) %>%
+  select(-starts_with("included_"), -starts_with("weight_"))
+
+# Save the filtered dataset
+write.csv(filtered_dataset, "filtered_dataset.csv", row.names = FALSE)
