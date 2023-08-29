@@ -1,0 +1,22 @@
+library(DT)
+
+# Create a sample DataFrame
+data <- data.frame(
+  Name = c("Alice", "Bob", "Charlie"),
+  Age = c(25, 30, 22),
+  Score = c(85, 90, 78)
+)
+
+# Add a row with green background
+data_table <- datatable(data, 
+                        options = list(
+                          rowCallback = JS(
+                            "function(row, data, displayNum, index) {
+                               if (index === (data.length - 1)) {
+                                 $('td', row).css('background-color', 'green');
+                               }
+                             }"
+                          )
+                        ))
+
+data_table
