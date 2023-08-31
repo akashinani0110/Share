@@ -1,0 +1,55 @@
+generate_sql_query <- function(params_list) {
+  where_clauses <- params_list$where_clauses
+  
+  # Recursive function to build WHERE clause
+  build_where_clause <- function(clauses) {
+    clause_str <- ""
+    logical_operator <- ""
+    
+    for (clause in clauses) {
+      if (!is.null(clause$logical_operator)) {
+        logical_operator <- clause$logical_operator
+        clause_str <- paste(clause_str, logical_operator, sep = " ")
+      } else {
+        parameter <- clause$parameters
+        operator <- clause$operator
+        value <- clause$value
+        
+        if (operator == "IN") {
+          values <- paste("'", unlist(strsplit(value, ",")), "'", sep = "", collapse = ", ")
+          clause_str <- paste(clause_str, parameter, operator, "(", values, ")", sep = " ")
+        } else {
+          clause_str <- paste(clause_str, parameter, operator, "'", value, "'", sep = " ")
+        }
+      }
+    }
+    
+    return(clause_str)
+  }
+  
+  where_clause <- build_where_clause(where_clauses)
+  sql_query <- paste("SELECT * FROM", params_list$table, "WHERE", where_clause)
+  
+  return(sql_query)
+}
+
+# Define the params list
+params <- list(
+  database = "path_to_database.db",
+  table = "your_table_name",
+  where_clauses = list(
+    list(parameters = "column1", operator = "=", value = "value1"),
+    list(logical_operator = "AND"),
+    list(
+      list(
+        list(parameters = "column2", operator = "=", value = "value2"),
+        list(logical_operator = "OR"),
+        list(parameters = "column3", operator = "=", value = "value3")
+      )
+    )
+  )
+)
+
+# Call the generate_sql_query function
+sql_query <- generate_sql_query(params)
+print(sql_query)
