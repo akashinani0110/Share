@@ -1,0 +1,61 @@
+generate_sql_query <- function(params_list) {
+  # Connect to SQLite database
+  con <- dbConnect(RSQLite::SQLite(), dbname = params_list$database)
+  
+  # Recursive function to build WHERE clause
+  build_where_clause <- function(clauses) {
+    clause_strs <- c()
+    
+    for (clause in clauses) {
+      if (is.list(clause$logical_operator)) {
+        clause_strs <- c(clause_strs, "(", build_where_clause(clause), ")")
+      } else {
+        parameter <- clause$parameters
+        operator <- clause$operator
+        value <- clause$value
+        
+        if (operator == "IN") {
+          values <- unlist(strsplit(value, ","))
+          values_str <- paste0("'", trimws(values), "'", collapse = ", ")
+          clause_strs <- c(clause_strs, paste(parameter, operator, "(", values_str, ")", sep = " "))
+        } else {
+          clause_strs <- c(clause_strs, paste(parameter, operator, "'", value, "'", sep = " "))
+        }
+      }
+    }
+    
+    return(paste(clause_strs, collapse = " "))
+  }
+  
+  # Construct the full SQL query
+  where_clause <- build_where_clause(params_list$where_clauses)
+  sql_query <- paste("SELECT * FROM", params_list$table, "WHERE", where_clause)
+  
+  # Execute the query
+  result <- dbGetQuery(con, sql_query)
+  
+  # Disconnect from SQLite database
+  dbDisconnect(con)
+  
+  return(result)
+}
+
+# Define the params list
+params <- list(
+  database = "path_to_database.db",
+  table = "your_table_name",
+  where_clauses = list(
+    list(parameters = "column1", operator = "=", value = "value1"),
+    logical_operator = "AND",
+    list(
+      list(
+        list(parameters = "column2", operator = "=", value = "value2"),
+        logical_operator = "OR",
+        list(parameters = "column3", operator = "=", value = "value3")
+      )
+    )
+  )
+)
+
+# Call the generate_sql_query function
+result <- generate_sql_query(params)
