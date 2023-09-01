@@ -1,0 +1,19 @@
+for (pair in column_pairs) {
+  included_col <- pair[1]
+  weight_col <- pair[2]
+  
+  filtered_dataset <- filtered_dataset %>%
+    mutate(
+      reason = case_when(
+        (get(included_col) == TRUE & get(weight_col) >= 0) ~ "Passed",
+        (get(included_col) == FALSE & get(weight_col) == 0) ~ "Failed due to zero weight",
+        (is.na(get(included_col)) & is.na(get(weight_col))) ~ "Failed due to NA values",
+        TRUE ~ "Other reason"  # Add more conditions as needed
+      )
+    ) %>%
+    filter(
+      !((get(included_col) == TRUE & get(weight_col) >= 0) |
+        (get(included_col) == FALSE & get(weight_col) == 0) |
+        (is.na(get(included_col)) & is.na(get(weight_col))))
+    )
+}
