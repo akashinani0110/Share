@@ -1,0 +1,26 @@
+# Initialize an empty column to store reasons in your dataframe
+your_dataframe$reason <- character(0)
+
+for (pair in column_pairs) {
+  included_col <- pair[1]
+  weight_col <- pair[2]
+  
+  # Check conditions for each row and add reasons for failures
+  reasons <- character(nrow(your_dataframe))
+  
+  if (any(your_dataframe[[included_col]] == TRUE & your_dataframe[[weight_col]] >= 0)) {
+    reasons[your_dataframe[[included_col]] == TRUE & your_dataframe[[weight_col]] >= 0] <- "Condition 1 passed"
+  }
+  
+  if (any(your_dataframe[[included_col]] == FALSE & your_dataframe[[weight_col]] == 0)) {
+    reasons[your_dataframe[[included_col]] == FALSE & your_dataframe[[weight_col]] == 0] <- "Condition 2 passed"
+  }
+  
+  if (any(is.na(your_dataframe[[included_col]]) & is.na(your_dataframe[[weight_col]]))) {
+    reasons[is.na(your_dataframe[[included_col]]) & is.na(your_dataframe[[weight_col]])] <- "Condition 3 passed"
+  }
+  
+  # Add more conditions and reasons as needed
+  
+  your_dataframe$reason <- paste(your_dataframe$reason, reasons, sep = "; ")
+}
