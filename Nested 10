@@ -1,0 +1,32 @@
+generate_sql_query <- function(params_list) {
+  where_clauses <- params_list$where_clauses
+  
+  # Recursive function to build WHERE clause
+  build_where_clause <- function(clauses) {
+    clause_str <- ""
+    
+    for (clause in clauses) {
+      logical_operator <- ifelse(is.null(clause$logical_operator), "", clause$logical_operator)
+      parameter <- clause$parameters
+      operator <- clause$operator
+      value <- clause$value
+      
+      if (is.null(operator)) {
+        clause_str <- paste(clause_str, parameter, logical_operator, sep = " ")
+      } else if (operator == "IN") {
+        values <- paste(unlist(strsplit(value, ",")), collapse = "','")
+        clause_str <- paste(clause_str, parameter, operator, "(", values, ")", sep = " ")
+      } else {
+        clause_str <- paste(clause_str, parameter, operator, "'", value, "'", sep = " ")
+      }
+      
+      if (!is.null(clause$nested_clauses)) {
+        clause_str <- paste(clause_str, "(", build_where_clause(clause$nested_clauses), ")", sep = " ")
+      }
+    }
+    
+    return(clause_str)
+  }
+  
+  return(build_where_clause(where_clauses))
+}
