@@ -1,0 +1,28 @@
+# Initialize an empty column to store reasons in your dataframe
+your_dataframe$reason <- character(0)
+
+for (i in seq(1, length(column_pairs), by = 2)) {
+  col1 <- column_pairs[i]
+  col2 <- column_pairs[i + 1]
+  
+  # Check conditions for each row and add reasons
+  reasons <- character(nrow(your_dataframe))
+  
+  # Condition 1: If 1st column is TRUE and 2nd column must not be 0
+  condition1 <- your_dataframe[[col1]] == TRUE & your_dataframe[[col2]] != 0
+  reasons[condition1] <- "Condition 1 failed"
+  
+  # Condition 2: If 1st column is FALSE, 2nd column must not be 0
+  condition2 <- your_dataframe[[col1]] == FALSE & your_dataframe[[col2]] != 0
+  reasons[condition2] <- "Condition 2 failed"
+  
+  # Condition 3: If 1st column is NA, 2nd column must not be NA
+  condition3 <- is.na(your_dataframe[[col1]]) & !is.na(your_dataframe[[col2]])
+  reasons[condition3] <- "Condition 3 failed"
+  
+  # Combine reasons for this pair of columns
+  your_dataframe$reason <- paste(your_dataframe$reason, reasons, sep = "; ")
+}
+
+# For all other rows, if reason is still empty, set it to "Passed"
+your_dataframe$reason[which(your_dataframe$reason == "")] <- "Passed"
