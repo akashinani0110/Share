@@ -1,0 +1,26 @@
+reasons_list <- list()  # Create an empty list to store reasons
+
+for (pair in column_pairs) {
+  included_col <- pair[1]
+  weight_col <- pair[2]
+  
+  reasons <- character(0)  # Initialize an empty character vector to store reasons
+  
+  if (!(get(included_col) == TRUE & get(weight_col) >= 0)) {
+    reasons <- c(reasons, "Failed due to condition 1")
+  }
+  
+  if (!(get(included_col) == FALSE & get(weight_col) == 0)) {
+    reasons <- c(reasons, "Failed due to condition 2")
+  }
+  
+  if (!(is.na(get(included_col)) & is.na(get(weight_col)))) {
+    reasons <- c(reasons, "Failed due to condition 3")
+  }
+  
+  # Add more conditions and reasons as needed
+  
+  reasons_list[[length(reasons_list) + 1]] <- reasons
+}
+
+# Now, you have a list of reasons for each pair in 'reasons_list'
