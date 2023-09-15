@@ -1,0 +1,12 @@
+historical_data$Profile <- gsub("TD_(\\d{4})", "\\1", historical_data$Profile)
+historical_data$Profile <- gsub("TDAA_(\\d{4})", "\\1", historical_data$Profile)
+
+
+# Load the TDAA ID mapping file
+tdaa_mapping <- read.csv("tdaa_mapping.csv")
+
+# Perform the mapping
+historical_data$ID <- with(historical_data, 
+    ifelse(Type == "TDAA" & Profile == "Retirement", "301013000000",
+    ifelse(Type == "TAA" & grepl("^\\[\\d{4}\\]$", Profile), paste("30101", Profile, "000", sep = "")))
+)
