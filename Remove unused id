@@ -1,0 +1,35 @@
+remove_unused_selected <- function(id_list) {
+  # Iterate through each ID data in the list
+  for (id_data in id_list) {
+    # Extract the lists for Stotal, Sselected, and Sunused
+    Stotal <- id_data$Stotal
+    Sselected <- id_data$Sselected
+    Sunused <- id_data$Sunused
+    
+    # Remove values from Sselected that are not in Stotal
+    id_data$Sselected <- Sselected[Sselected %in% Stotal]
+    
+    # Remove values from Sunused that are not in Stotal
+    id_data$Sunused <- Sunused[Sunused %in% Stotal]
+  }
+  
+  # Return the modified list of IDs
+  return(id_list)
+}
+
+# Example usage:
+# Create a list of IDs with the given structure
+id_list <- list(
+  list(
+    Stotal = c("Г11", "OE3B", "217E", "21C1", "2270", "ZAC3", "2C5B", "2C5D", "32F3", "38B3", "38BD", "4A64", "60F6"),
+    Sselected = c("F11", "2C5B", "2C5D", "32F3", "38BD", "4A64", "GOFG"),
+    Sunused = c("20C3", "CB2C", "3910", "E3EG", "22FO", "3F35", "C87F", "C94B", "F75B", "2F18")
+  ),
+  # Add more IDs with the same structure as needed
+)
+
+# Call the function to remove unused and selected values for each ID in the list
+updated_id_list <- remove_unused_selected(id_list)
+
+# View the updated list
+print(updated_id_list)
