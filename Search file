@@ -1,0 +1,56 @@
+# Function to recursively search for a file in the parent directory and its subdirectories
+findFile <- function(file_name, levels_back = 1) {
+  # Get the current working directory
+  current_dir <- getwd()
+
+  # Function to construct file paths
+  construct_file_paths <- function(file_name, levels_back) {
+    parent_dir <- file_name
+    for (i in 1:levels_back) {
+      parent_dir <- file.path("..", parent_dir)
+    }
+    return(file.path(current_dir, parent_dir))
+  }
+
+  # Search for the file recursively
+  search_file <- function(dir_path) {
+    dir_content <- list.files(dir_path, recursive = TRUE)
+    if (file_name %in% dir_content) {
+      return(file.path(dir_path, file_name))
+    } else {
+      subdirs <- list.dirs(dir_path, recursive = FALSE)
+      for (subdir in subdirs) {
+        result <- search_file(subdir)
+        if (!is.null(result)) {
+          return(result)
+        }
+      }
+      return(NULL)
+    }
+  }
+
+  # Start searching from the current directory
+  file_path <- search_file(construct_file_paths(file_name, levels_back))
+  
+  if (!is.null(file_path)) {
+    return(file_path)
+  } else {
+    cat("File not found:", file_name, "\n")
+    return(NULL)
+  }
+}
+
+# Usage example:
+# File name to search for
+file_name_to_find <- "target_file.R"
+
+# Specify the number of directory levels back (1 or 2)
+directory_levels_back <- 2
+
+# Search for the file one or two levels back
+file_path_found <- findFile(file_name_to_find, directory_levels_back)
+
+# Check if the file was found and print its path
+if (!is.null(file_path_found)) {
+  cat("Found file:", file_path_found, "\n")
+}
