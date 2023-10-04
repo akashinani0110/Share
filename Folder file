@@ -1,0 +1,53 @@
+# Function to recursively find file paths for a specified file path
+findExactFileInPath <- function(file_path, max_levels = 2) {
+  # Split the file path into folder and file components
+  path_parts <- unlist(strsplit(file_path, "/"))
+  if (length(path_parts) != 2) {
+    cat("Invalid file path format. Please use 'folder/file' format.\n")
+    return(NULL)
+  }
+  
+  folder_name <- path_parts[1]
+  file_name <- path_parts[2]
+  
+  found_paths <- character(0)
+  
+  for (level in 0:max_levels) {
+    # Construct the directory path for the current level
+    dir_path <- rep("../", level)
+    target_dir <- file.path(dir_path, folder_name)
+    
+    # Check if the target directory exists
+    if (dir.exists(target_dir)) {
+      # Search for the file in the target directory and its subdirectories
+      file_paths <- list.files(path = target_dir, pattern = file_name, recursive = TRUE, full.names = TRUE)
+      
+      if (length(file_paths) > 0) {
+        found_paths <- c(found_paths, file_paths)
+        break  # Stop searching if the file was found at this level
+      }
+    }
+  }
+  
+  if (length(found_paths) > 0) {
+    return(found_paths)
+  } else {
+    cat("File not found:", file_name, "in folder:", folder_name, "\n")
+    return(NULL)
+  }
+}
+
+# Usage example:
+# Specify the file path in the format "folder/file"
+file_path_to_find <- "scripts/target_file.R"
+
+# Search for the specified file path in the current directory and its parent directory
+file_paths_found <- findExactFileInPath(file_path_to_find)
+
+# Check if the file was found and print its paths
+if (!is.null(file_paths_found)) {
+  cat("Found file:", file_path_to_find, "\n")
+  for (file_path in file_paths_found) {
+    cat(file_path, "\n")
+  }
+}
