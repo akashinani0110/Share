@@ -1,0 +1,47 @@
+# Define a function to load R files from a folder
+load_R_files_from_folder <- function(folder_name, files_to_source = NULL) {
+  # Get the current working directory
+  current_dir <- getwd()
+  
+  # Set the folder path
+  folder_path <- file.path(current_dir, folder_name)
+  
+  # Check if the folder exists
+  if (!file.exists(folder_path) || !file.info(folder_path)$isdir) {
+    cat("The specified folder does not exist.\n")
+    return(NULL)
+  }
+  
+  # List all R files in the folder
+  r_files <- list.files(path = folder_path, pattern = "\\.R$", full.names = TRUE)
+  
+  # Check if any R files were found
+  if (length(r_files) == 0) {
+    cat("No .R files found in the specified folder.\n")
+    return(NULL)
+  }
+  
+  # Source the specified R files or all R files if not specified
+  if (is.null(files_to_source)) {
+    for (file in r_files) {
+      source(file)
+      cat("Sourced:", file, "\n")
+    }
+  } else {
+    for (file in files_to_source) {
+      if (file %in% r_files) {
+        source(file)
+        cat("Sourced:", file, "\n")
+      } else {
+        cat("File not found in the specified folder:", file, "\n")
+      }
+    }
+  }
+}
+
+# Usage example:
+# Load all R files in the "scripts" folder
+load_R_files_from_folder("scripts")
+
+# Load specific R files from the "scripts" folder
+# load_R_files_from_folder("scripts", c("script1.R", "script2.R"))
