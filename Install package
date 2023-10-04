@@ -1,0 +1,31 @@
+# Define a function to load and install packages
+load_and_install_packages <- function(packages_to_load) {
+  # Get a list of all available packages
+  available_packages <- available.packages()[, "Package"]
+  
+  # Check if each package in packages_to_load is available, load it if available
+  for (package in packages_to_load) {
+    if (package %in% available_packages) {
+      if (!require(package, character.only = TRUE, quietly = TRUE)) {
+        install.packages(package, dependencies = TRUE)
+        library(package, character.only = TRUE)
+        cat("Loaded and installed:", package, "\n")
+      } else {
+        cat("Loaded:", package, "\n")
+      }
+    } else {
+      cat("Package not available:", package, "\n")
+    }
+  }
+  
+  # Install any remaining packages
+  remaining_packages <- setdiff(packages_to_load, available_packages)
+  if (length(remaining_packages) > 0) {
+    install.packages(remaining_packages, dependencies = TRUE)
+    cat("Installed remaining packages:", paste(remaining_packages, collapse = ", "), "\n")
+  }
+}
+
+# Usage example:
+packages_to_load <- c("dplyr", "ggplot2", "non_existent_package")
+load_and_install_packages(packages_to_load)
