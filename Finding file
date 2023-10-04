@@ -1,0 +1,27 @@
+# Function to find the file path in the current directory or its subdirectories
+findFileInCurrentDir <- function(file_name) {
+  # Search for the file in the current directory and its subdirectories
+  file_paths <- list.files(pattern = file_name, recursive = TRUE, full.names = TRUE)
+  
+  if (length(file_paths) > 0) {
+    return(file_paths)
+  } else {
+    cat("File not found:", file_name, "\n")
+    return(NULL)
+  }
+}
+
+# Usage example:
+# File name to search for
+file_name_to_find <- "target_file.R"
+
+# Search for the file in the current directory and its subdirectories
+file_paths_found <- findFileInCurrentDir(file_name_to_find)
+
+# Check if the file was found and print its paths
+if (!is.null(file_paths_found)) {
+  cat("Found file(s):\n")
+  for (file_path in file_paths_found) {
+    cat(file_path, "\n")
+  }
+}
