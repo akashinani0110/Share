@@ -1,0 +1,35 @@
+import requests
+from bs4 import BeautifulSoup
+
+url = "YOUR_URL_HERE"
+response = requests.get(url)
+
+# Check if the request was successful (status code 200)
+if response.status_code == 200:
+    web_content = response.text
+else:
+    print("Failed to retrieve the web page.")
+
+# Parse the HTML content
+soup = BeautifulSoup(web_content, 'html.parser')
+
+
+# Find the table (you may need to adjust the selector)
+table = soup.find('table')
+
+if table:
+    # Find the first row in the table
+    first_row = table.find('tr')
+    
+    if first_row:
+        # Find the CSV column in the first row (you may need to adjust the index)
+        csv_column = first_row.find_all('td')[COLUMN_INDEX]
+
+        # Extract the link from the CSV column
+        link = csv_column.a['href']
+
+        print("Link in the first row of the CSV column:", link)
+    else:
+        print("No rows found in the table.")
+else:
+    print("No table found on the web page.")
