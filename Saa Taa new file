@@ -1,0 +1,62 @@
+# Load the required libraries
+library(RSQLite)
+
+# Function to create a table if it doesn't exist in the database
+create_table_if_not_exists <- function(conn) {
+  dbGetQuery(conn, "
+    CREATE TABLE IF NOT EXISTS file_data (
+      file_name TEXT,
+      date TEXT,
+      data TEXT,
+      PRIMARY KEY (date)
+    )
+  ")
+}
+
+# Function to process a new file
+process_new_file <- function(file_path, conn) {
+  file_info <- file.info(file_path)
+  file_date <- as.character(file_info$mtime)
+  
+  # Check if the date exists in the database
+  query <- dbSendQuery(conn, "SELECT date FROM file_data WHERE date = ?")
+  dbBind(query, list(file_date))
+  result <- dbFetch(query)
+  dbClearResult(query)
+  
+  if (nrow(result) == 0) {
+    # Date doesn't exist, insert data into the database
+    file_data <- readLines(file_path)
+    dbInsertData <- dbSendQuery(conn, "INSERT INTO file_data (file_name, date, data) VALUES (?, ?, ?)")
+    dbBind(dbInsertData, list(basename(file_path), file_date, paste(file_data, collapse = "\n")))
+    dbExecute(dbInsertData)
+    dbClearResult(dbInsertData)
+  } else {
+    # Date exists, update the database
+    file_data <- readLines(file_path)
+    dbUpdateData <- dbSendQuery(conn, "UPDATE file_data SET data = ? WHERE date = ?")
+    dbBind(dbUpdateData, list(paste(file_data, collapse = "\n"), file_date))
+    dbExecute(dbUpdateData)
+    dbClearResult(dbUpdateData)
+  }
+}
+
+# Monitor the directory for new files and process them
+monitor_directory <- function(directory_path, conn) {
+  create_table_if_not_exists(conn)
+  
+  while (TRUE) {
+    files <- list.files(directory_path, full.names = TRUE)
+    for (file in files) {
+      if (file.info(file)$isdir == FALSE) {
+        process_new_file(file, conn)
+      }
+    }
+    Sys.sleep(60)  # Sleep for a minute before checking again
+  }
+}
+
+# Main program
+db_path <- "your_database.db"
+conn <- dbConnect(SQLite(), db_path)
+monitor_directory("your_monitoring_directory", conn)
