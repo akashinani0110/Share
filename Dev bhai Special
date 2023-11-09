@@ -1,0 +1,52 @@
+from flask import Flask, request, jsonify
+import csv
+
+app = Flask(__name)
+
+@app.route('/add_data', methods=['POST'])
+def add_data_to_csv():
+    data = request.get_json()
+    with open('data.csv', mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(data)
+    return "Data added to CSV", 201
+
+if __name__ == '__main':
+    app.run(debug=True)
+
+
+@app.route('/update_data/<int:id>', methods=['PUT'])
+def update_data_in_csv(id):
+    data = request.get_json()
+    rows = []
+    with open('data.csv', mode='r') as file:
+        reader = csv.reader(file)
+        rows = list(reader)
+        if id < len(rows):
+            rows[id] = data
+    with open('data.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(rows)
+    return "Data updated in CSV", 200
+
+
+@app.route('/fetch_data', methods=['GET'])
+def fetch_data_from_csv():
+    data = []
+    with open('data.csv', mode='r') as file:
+        reader = csv.reader(file)
+        data = list(reader)
+    return jsonify(data)
+
+
+
+@app.route('/query_data/<int:id>', methods=['GET'])
+def query_data_by_id(id):
+    data = []
+    with open('data.csv', mode='r') as file:
+        reader = csv.reader(file)
+        data = list(reader)
+        if id < len(data):
+            return jsonify(data[id])
+        else:
+            return "ID not found", 404
