@@ -1,0 +1,21 @@
+# Assuming 'holdingsTb1' is your original dataframe
+
+# Convert dates and sort them
+holdingsList <- holdingsTb1 %>%
+  mutate(date = as.Date(date)) %>%
+  arrange(pf_id, asset_id, date)
+
+# Define a function to compute change in weight within each group
+calculate_change <- function(sub_df) {
+  sub_df$change_in_weight <- c(0, diff(sub_df$weight))
+  return(sub_df)
+}
+
+# Apply the function by group using lapply
+result_list <- lapply(split(holdingsList, list(holdingsList$pf_id, holdingsList$asset_id)), calculate_change)
+
+# Combine the result back into a dataframe
+result_df <- do.call(rbind, result_list)
+
+# Print the result
+print(result_df)
