@@ -1,0 +1,35 @@
+library(dplyr)
+
+# Assuming 'holdingsTb1' is your original dataframe
+
+# Convert dates and sort them
+holdingsList <- holdingsTb1 %>%
+  mutate(date = as.Date(date)) %>%
+  arrange(pf_id, date)
+
+# Group by pf_id and compute transactions for portfolio holdings
+holdingsList <- holdingsList %>%
+  group_by(pf_id) %>%
+  arrange(date) %>%
+  mutate(
+    change = ifelse(row_number() == 1, weight, weight - lag(weight, default = 0)),
+    transaction = "No Change"  # Initialize transaction column with "No Change"
+  ) %>%
+  ungroup()
+
+# Loop through consecutive dates
+for (i in 1:(nrow(holdingsList) - 1)) {
+  holdingsList <- holdingsList %>%
+    mutate(
+      transaction = case_when(
+        is.na(weight[i]) & is.na(weight[i + 1]) ~ "No Change",  # No change when both current and next dates don't have entry
+        is.na(weight[i]) ~ "Sell",  # Sell when current date doesn't have entry
+        is.na(weight[i + 1]) ~ "Buy",  # Buy when next date doesn't have entry
+        change[i + 1] != 0 ~ "Rebalance",  # Rebalance when there is a change in weight on the next date
+        TRUE ~ transaction  # Maintain the existing transaction if no condition is met
+      )
+    )
+}
+
+# Print the result
+print(holdingsList)
