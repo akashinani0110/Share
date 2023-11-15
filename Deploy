@@ -1,0 +1,20 @@
+library(rsconnect)
+
+# Set your RStudio Connect server details
+connect_server_url <- 'https://your-connect-server-url/'
+rsconnect::setConnectServer(connect_server_url)
+
+# Specify your RStudio Connect username and password
+rsconnect::setAccountInfo(name = 'your-rstudio-username', password = 'your-rstudio-password')
+
+# Specify the file path of your Flask API script
+flask_api_path <- '/path/to/your/app.py'
+
+# Deploy the Flask API to RStudio Connect
+deploy_result <- rsconnect::deployDoc(flask_api_path,
+                                      appName = 'YourFlaskAPI',  # Replace with your desired app name
+                                      contentCategory = 'script',
+                                      forceUpdate = TRUE)  # Set to TRUE to overwrite any existing app with the same name
+
+# Print the deployment result
+print(deploy_result)
