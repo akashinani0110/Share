@@ -1,0 +1,90 @@
+# crud_csv_api.R
+# Load the required libraries
+library(plumber)
+library(dplyr)
+
+# Load data from CSV
+items <- read.csv("items.csv")
+
+# Define Plumber API
+pr <- plumb("crud_csv_api.R")
+
+# CRUD operations
+
+#* @get /items
+# Get all items
+function() {
+  items
+}
+
+#* @get /items/:id
+# Get item by id
+function(id) {
+  selected_item <- items[items$id == as.numeric(id), ]
+  if (nrow(selected_item) == 0) {
+    return(status = 404, "Item not found")
+  }
+  selected_item
+}
+
+#* @get /items/name/:name
+# Get item by name
+function(name) {
+  selected_item <- items[items$name == name, ]
+  if (nrow(selected_item) == 0) {
+    return(status = 404, "Item not found")
+  }
+  selected_item
+}
+
+#* @get /items/process/:process
+# Get item by process
+function(process) {
+  selected_item <- items[items$process == process, ]
+  if (nrow(selected_item) == 0) {
+    return(status = 404, "Item not found")
+  }
+  selected_item
+}
+
+#* @post /items
+# Add a new item
+function(name, process) {
+  new_id <- max(items$id) + 1
+  new_item <- data.frame(id = new_id, name = name, process = process)
+  items <<- rbind(items, new_item)
+  # Save data to CSV
+  write.csv(items, "items.csv", row.names = FALSE)
+  return(new_item)
+}
+
+#* @put /items/:id
+# Update an existing item
+function(id, name, process) {
+  id <- as.numeric(id)
+  if (id %in% items$id) {
+    items[items$id == id, c("name", "process")] <- list(name, process)
+    # Save data to CSV
+    write.csv(items, "items.csv", row.names = FALSE)
+    return(items[items$id == id, ])
+  } else {
+    return(status = 404, "Item not found")
+  }
+}
+
+#* @delete /items/:id
+# Delete an item by id
+function(id) {
+  id <- as.numeric(id)
+  if (id %in% items$id) {
+    items <<- items[items$id != id, ]
+    # Save data to CSV
+    write.csv(items, "items.csv", row.names = FALSE)
+    return("Item deleted successfully")
+  } else {
+    return(status = 404, "Item not found")
+  }
+}
+
+# Run the API on port 8000
+pr$run(port = 8000)
