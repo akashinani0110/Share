@@ -1,0 +1,87 @@
+# Load necessary libraries
+library(plumber)
+library(data.table)
+
+# Create an empty data.table to store the data
+data_store <- data.table(ID = integer(), Name = character(), Process = character())
+
+# Define the CSV file to store the data
+csv_file <- 'data.csv'
+
+# Load data from the CSV file on API startup
+load_data_from_csv <- function() {
+  tryCatch({
+    data_store <- fread(csv_file)
+  }, error = function(e) {
+    return(NULL)
+  })
+}
+
+# Save data to the CSV file
+save_data_to_csv <- function() {
+  fwrite(data_store, csv_file, append = FALSE)
+}
+
+# Load data from CSV file on API startup
+load_data_from_csv()
+
+# Initialize the Plumber API
+pr <- plumb("api.R")
+
+# Insert data route
+pr$run('insert_data', function(req, res) {
+  data <- req$postBody()
+  data <- fromJSON(data)
+  if ('ID' %in% names(data) && 'Name' %in% names(data) && 'Process' %in% names(data)) {
+    new_data <- data.table(ID = data$ID, Name = data$Name, Process = data$Process)
+    data_store <- rbindlist(list(data_store, new_data), fill = TRUE)
+    save_data_to_csv()  # Save data to CSV
+    return(list(message = 'Data inserted successfully'))
+  } else {
+    res$status <- 400
+    return(list(message = 'Invalid JSON data format. Ensure it includes ID, Name, and Process fields.'))
+  }
+})
+
+# Update data route
+pr$run('update_data', function(req, res, id) {
+  data <- req$postBody()
+  data <- fromJSON(data)
+  for (i in 1:nrow(data_store)) {
+    if (data_store[i, ID] == id) {
+      data_store[i, Name := ifelse(is.null(data$Name), data_store[i, Name], data$Name)]
+      data_store[i, Process := ifelse(is.null(data$Process), data_store[i, Process], data$Process)]
+      save_data_to_csv()  # Save data to CSV
+      return(list(message = 'Data updated successfully'))
+    }
+  }
+  res$status <- 404
+  return(list(message = 'Data with the specified ID not found'))
+})
+
+# Delete data route
+pr$run('delete_data', function(req, res, id) {
+  for (i in 1:nrow(data_store)) {
+    if (data_store[i, ID] == id) {
+      data_store <- data_store[-i, ]
+      save_data_to_csv()  # Save data to CSV
+      return(list(message = 'Data deleted successfully'))
+    }
+  }
+  res$status <- 404
+  return(list(message = 'Data with the specified ID not found'))
+})
+
+# Search data route
+pr$run('search_data', function(req, res, id) {
+  for (i in 1:nrow(data_store)) {
+    if (data_store[i, ID] == id) {
+      return(data_store[i, .(ID, Name, Process)])
+    }
+  }
+  res$status <- 404
+  return(list(message = 'Data with the specified ID not found'))
+})
+
+# Run the Plumber API
+pr$run(port = 8000)
