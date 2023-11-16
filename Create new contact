@@ -1,0 +1,37 @@
+library(dplyr)
+library(tidyr)
+
+# Assuming your data frame is called your_data
+# Assuming columns are named date1, date2, ..., dateN
+date_columns <- grep("^date", names(your_data), value = TRUE)
+
+transactions <- data.frame()  # Empty dataframe to store the transactions
+
+for (i in 2:length(date_columns)) {
+  comparison <- your_data %>%
+    transmute(
+      plan_id,
+      pf_id,
+      asset_id,
+      weight = !!sym(date_columns[[i]]),
+      date = date_columns[[i]],
+      change = ifelse(!is.na(!!sym(date_columns[[i]])) & is.na(!!sym(date_columns[[i - 1]])), 
+                      !!sym(date_columns[[i]]) - !!sym(date_columns[[i - 1]]), 
+                      ifelse(is.na(!!sym(date_columns[[i]])) & !is.na(!!sym(date_columns[[i - 1]])), 
+                             !!sym(date_columns[[i]]) - !!sym(date_columns[[i - 1]]), 
+                             ifelse(!is.na(!!sym(date_columns[[i]])) & !is.na(!!sym(date_columns[[i - 1]])), 
+                                    !!sym(date_columns[[i]]) - !!sym(date_columns[[i - 1]]), 0))),
+      transaction = case_when(
+        !is.na(!!sym(date_columns[[i]])) & is.na(!!sym(date_columns[[i - 1]])) ~ "Buy",
+        is.na(!!sym(date_columns[[i]])) & !is.na(!!sym(date_columns[[i - 1]])) ~ "Sell",
+        !is.na(!!sym(date_columns[[i]])) & !is.na(!!sym(date_columns[[i - 1]])) & !!sym(date_columns[[i]]) - !!sym(date_columns[[i - 1]]) == 0 ~ "No change",
+        is.na(!!sym(date_columns[[i]])) & is.na(!!sym(date_columns[[i - 1]])) ~ "No entry",
+        TRUE ~ "Rebalance"
+      )
+    )
+  
+  transactions <- bind_rows(transactions, comparison)
+}
+
+transactions <- transactions %>%
+  arrange(plan_id, pf_id, asset_id, date)
