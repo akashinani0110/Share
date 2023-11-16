@@ -1,0 +1,10 @@
+library(dplyr)
+
+# Assuming your data frame is called your_data
+result <- your_data %>%
+  arrange(pf_id, asset_id, date) %>%
+  group_by(pf_id, asset_id) %>%
+  filter(date %in% lag(date) | date %in% lead(date)) %>%
+  arrange(pf_id, asset_id, date) %>%
+  filter(!(date %in% lead(date) & date %in% lag(date))) %>%
+  ungroup()
