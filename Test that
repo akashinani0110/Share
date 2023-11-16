@@ -1,0 +1,20 @@
+library(dplyr)
+
+# Assuming your data frame is called your_data
+your_data <- your_data %>%
+  arrange(pf_id, asset_id, date)
+
+# Identify consecutive missing and available asset_id entries
+your_data <- your_data %>%
+  group_by(pf_id) %>%
+  mutate(prev_asset_id = lag(asset_id),
+         next_asset_id = lead(asset_id),
+         to_rebalance = ifelse(is.na(prev_asset_id) & !is.na(next_asset_id), 
+                               ifelse(weight != lag(weight), TRUE, FALSE), FALSE)) %>%
+  ungroup()
+
+# Filter only the rows needing rebalance
+to_rebalance_data <- your_data %>%
+  filter(to_rebalance)
+
+# This will give you the entries that need rebalancing based on missing and consecutive available "asset_id" entries with different weights.
