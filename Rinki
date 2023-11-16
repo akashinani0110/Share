@@ -1,0 +1,16 @@
+library(dplyr)
+library(tidyr)
+
+# Assuming your data frame is called your_data
+transactions <- your_data %>%
+  # Assuming the columns from 'date1' to 'dateN' are the date columns
+  mutate_at(vars(starts_with("date")), as.Date) %>%
+  mutate(change = select(., starts_with("date")) %>% apply(1, function(x) diff(na.omit(x))),
+         transaction = case_when(
+           is.na(select(., starts_with("date"))[, ncol(.)]) & all(is.na(select(., starts_with("date"))[, -ncol(.)])) ~ "No entry required",
+           !is.na(select(., starts_with("date"))[, ncol(.)]) & all(is.na(select(., starts_with("date"))[, -ncol(.)])) ~ "Sell",
+           change == 0 ~ "No change",
+           !is.na(select(., starts_with("date"))[, 1]) & all(is.na(select(., starts_with("date"))[, -1])) ~ "Buy",
+           TRUE ~ "Rebalance"
+         )) %>%
+  select(plan_id, pf_id, asset_id, starts_with("date"), change, transaction)
