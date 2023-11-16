@@ -1,0 +1,17 @@
+library(dplyr)
+
+# Assuming your data frame is called your_data
+transactions <- your_data %>%
+  arrange(plan_id, pf_id, asset_id, desc(date)) %>%
+  group_by(plan_id, pf_id, asset_id) %>%
+  mutate(change = lead(weight, default = NA) - weight,
+         transaction = case_when(
+           is.na(lead(weight)) & is.na(weight) ~ "No entry required",
+           !is.na(lead(weight)) & is.na(weight) ~ "Sell",
+           change == 0 ~ "No change",
+           !is.na(weight) & is.na(lead(weight)) ~ "Buy",
+           TRUE ~ "Rebalance"
+         )) %>%
+  slice(n():1) %>%
+  select(plan_id, pf_id, asset_id, date, weight, change, transaction) %>%
+  ungroup()
