@@ -1,0 +1,4 @@
+Developer: They would typically use Postman or code a client to make API requests. They understand the API's endpoints, parameters, and authentication methods.
+Non-technical user: They might use Postman's GUI to visually construct requests, relying on simplified interfaces to input data and receive responses without dealing with code.
+Automated system: A machine or an application might programmatically interact with the API via code, making requests at scheduled times or in response to specific triggers without any human intervention.
+Power User: Someone well-versed in both technical and non-technical aspects might leverage both Postman's visual interface and scripting capabilities to fine-tune requests and automate certain processes.
