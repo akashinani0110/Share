@@ -1,0 +1,80 @@
+from fastapi import FastAPI, UploadFile, File, Form
+import xmltodict
+
+app = FastAPI()
+
+@app.post("/upload/")
+async def upload_files(
+    name: str = Form(..., description="User's name"),
+    age: int = Form(..., description="User's age"),
+    dob: str = Form(..., description="User's date of birth (YYYY-MM-DD)"),
+    csv_files: List[UploadFile] = File(..., description="List of CSV files to upload"),
+    xml_file: UploadFile = File(None, description="XML file to upload")
+):
+    uploaded_files = []
+
+    # Process CSV files (similar to previous code)
+    
+    # Process XML file if provided
+    if xml_file:
+        if xml_file.filename.endswith('.xml'):
+            contents = await xml_file.read()
+            xml_dict = xmltodict.parse(contents)
+
+            # Add XML data to uploaded_files list
+            uploaded_files.append({
+                "filename": xml_file.filename,
+                "contents": xml_dict,  # XML data converted to a dictionary
+                "file_type": "XML"
+            })
+        else:
+            return {"error": "Please upload a valid XML file."}
+
+    # Process the uploaded files
+    # Your processing logic here
+    
+    return {
+        "name": name,
+        "age": age,
+        "dob": dob,
+        "uploaded_files": uploaded_files
+    }
+
+
+
+import requests
+
+url = "http://your_api_endpoint/upload/"  # Replace with your FastAPI endpoint
+
+# Path to the CSV files you want to upload
+csv_file_paths = ['path/to/your/csv/file1.csv', 'path/to/your/csv/file2.csv']  # Replace with CSV file paths
+
+# Path to the XML file you want to upload
+xml_file_path = 'path/to/your/xml/file.xml'  # Replace with your XML file path
+
+# Additional form data (name, age, dob)
+payload = {
+    'name': 'Your Name',
+    'age': 30,
+    'dob': '1990-01-01'
+}
+
+# Prepare the files to be uploaded (CSV and XML)
+files = {}
+for idx, csv_file_path in enumerate(csv_file_paths):
+    files[f'csv_files_{idx}'] = open(csv_file_path, 'rb')
+
+if xml_file_path.endswith('.xml'):
+    files['xml_file'] = open(xml_file_path, 'rb')
+
+# Make the POST request to the FastAPI endpoint
+response = requests.post(url, files=files, data=payload)
+
+# Handle the response
+if response.status_code == 200:
+    result = response.json()
+    print("Uploaded Files:")
+    print(result['uploaded_files'])  # Assuming the API returns uploaded files info
+else:
+    print("Request failed with status code:", response.status_code)
+    print("Error:", response.text)  # Print the error message or response content
