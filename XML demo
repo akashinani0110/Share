@@ -1,0 +1,19 @@
+from fastapi import FastAPI, UploadFile, File, Form
+import xml.etree.ElementTree as ET
+
+app = FastAPI()
+
+@app.post("/upload_xml/")
+async def upload_xml(xml_file: UploadFile = File(...)):
+    # Check if the uploaded file is an XML file
+    if xml_file.filename.endswith('.xml'):
+        contents = await xml_file.read()
+        root = ET.fromstring(contents)
+
+        # Extract data or perform any operations with the XML content
+        # For demonstration, let's convert the XML to a string and return it
+        xml_string = ET.tostring(root).decode('utf-8')
+        
+        return {"xml_content": xml_string}
+    else:
+        return {"error": "Please upload an XML file."}
