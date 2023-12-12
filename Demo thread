@@ -1,0 +1,44 @@
+from fastapi import FastAPI, UploadFile, File, Form
+from typing import List
+import uvicorn
+from threading import Thread
+
+app = FastAPI()
+
+@app.post("/upload/", summary="Upload Files", description="Upload CSV files and a JSON file.")
+async def upload_files(
+    name: str = Form(..., description="User's name"),
+    age: int = Form(..., description="User's age"),
+    dob: str = Form(..., description="User's date of birth (YYYY-MM-DD)"),
+    files: List[UploadFile] = File(..., description="List of CSV files to upload"),
+    json_file: UploadFile = File(..., description="JSON file to upload")
+):
+    uploaded_files = []
+    
+    for file in files:
+        contents = await file.read()
+        uploaded_files.append({
+            "filename": file.filename,
+            "contents": contents.decode('utf-8')
+        })
+    
+    json_contents = await json_file.read()
+    json_data = json_contents.decode('utf-8')
+    
+    # Process the CSV files and generate JSON results
+    # Your processing logic here
+    
+    return {
+        "name": name,
+        "age": age,
+        "dob": dob,
+        "uploaded_files": uploaded_files,
+        "json_data": json_data
+    }
+
+def start_fastapi():
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# Start FastAPI in a separate thread
+fastapi_thread = Thread(target=start_fastapi)
+fastapi_thread.start()
