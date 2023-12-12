@@ -1,0 +1,38 @@
+import requests
+
+url = "http://your_api_endpoint/upload/"  # Replace with your API endpoint
+
+# Prepare the files to upload
+files = [
+    ('files', ('file1.csv', open('file1.csv', 'rb'), 'text/csv')),
+    ('files', ('file2.csv', open('file2.csv', 'rb'), 'text/csv')),
+    # Add the rest of your CSV files
+]
+
+json_file = ('json_file', open('your_json_file.json', 'rb'))
+
+# Additional parameters
+payload = {
+    'name': 'Your Name',
+    'age': 30,
+    'dob': '1990-01-01'
+}
+
+# Create a dictionary to hold the files and JSON separately
+data = {
+    'json_file': json_file[1],
+    'payload_json': (None, json.dumps(payload), 'application/json')
+}
+
+for file_item in files:
+    data[file_item[0]] = file_item[1]
+
+# Make the POST request
+response = requests.post(url, files=data)
+
+# Handle the response
+if response.status_code == 200:
+    result = response.json()
+    print(result)
+else:
+    print("Request failed with status code:", response.status_code)
