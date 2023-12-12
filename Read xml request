@@ -1,0 +1,21 @@
+import requests
+
+url = "http://your_api_endpoint/upload_xml/"  # Replace with your FastAPI endpoint
+
+# Path to the XML file you want to upload
+xml_file_path = 'path/to/your/xml/file.xml'
+
+# Prepare the file to be uploaded
+files = {'xml_file': open(xml_file_path, 'rb')}
+
+# Make the POST request to the FastAPI endpoint
+response = requests.post(url, files=files)
+
+# Handle the response
+if response.status_code == 200:
+    result = response.json()
+    print("XML Content:")
+    print(result['xml_content'])  # Assuming the API returns the XML content
+else:
+    print("Request failed with status code:", response.status_code)
+    print("Error:", response.text)  # Print the error message or response content
