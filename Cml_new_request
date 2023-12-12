@@ -1,0 +1,40 @@
+import requests
+
+url = "http://your_api_endpoint/upload/"  # Replace with your FastAPI endpoint
+
+# List of specific CSV file names you want to upload
+csv_file_paths = ['path/to/csv/akash.csv', 'path/to/csv/alok.csv', 'path/to/csv/another_file.csv']  # Replace with CSV file paths
+
+# List of specific XML file names you want to upload
+xml_file_paths = ['path/to/xml/akash.xml', 'path/to/xml/alok.xml', 'path/to/xml/another_file.xml']  # Replace with XML file paths
+
+# Additional form data (name, age, dob)
+payload = {
+    'name': 'Your Name',
+    'age': 30,
+    'dob': '1990-01-01'
+}
+
+# Prepare the files to be uploaded (CSV and XML)
+files = {}
+for csv_file_path in csv_file_paths:
+    if csv_file_path.endswith('.csv'):
+        filename = f'csv_{csv_file_paths.index(csv_file_path) + 1}'
+        files[filename] = open(csv_file_path, 'rb')
+
+for xml_file_path in xml_file_paths:
+    if xml_file_path.endswith('.xml'):
+        filename = f'xml_{xml_file_paths.index(xml_file_path) + 1}'
+        files[filename] = open(xml_file_path, 'rb')
+
+# Make the POST request to the FastAPI endpoint
+response = requests.post(url, files=files, data=payload)
+
+# Handle the response
+if response.status_code == 200:
+    result = response.json()
+    print("Response:")
+    print(result)  # Print the response from the API
+else:
+    print("Request failed with status code:", response.status_code)
+    print("Error:", response.text)  # Print the error message or response content
