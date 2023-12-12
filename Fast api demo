@@ -1,0 +1,61 @@
+from fastapi import FastAPI, UploadFile, File, Form
+
+app = FastAPI()
+
+@app.post("/upload/")
+async def upload_files(name: str = Form(...), age: int = Form(...), dob: str = Form(...), 
+                       files: List[UploadFile] = File(...), json_file: UploadFile = File(...)):
+    uploaded_files = []
+    
+    for file in files:
+        contents = await file.read()
+        uploaded_files.append({
+            "filename": file.filename,
+            "contents": contents.decode('utf-8')
+        })
+    
+    json_contents = await json_file.read()
+    json_data = json_contents.decode('utf-8')
+    
+    # Process the CSV files and generate JSON results
+    # Your processing logic here
+    
+    return {
+        "name": name,
+        "age": age,
+        "dob": dob,
+        "uploaded_files": uploaded_files,
+        "json_data": json_data
+    }
+
+
+
+import requests
+
+url = "http://your_api_endpoint/upload/"  # Replace with your API endpoint
+
+# Prepare the files to upload
+files = [
+    ('files', ('file1.csv', open('file1.csv', 'rb'), 'text/csv')),
+    ('files', ('file2.csv', open('file2.csv', 'rb'), 'text/csv')),
+    # Add the rest of your CSV files
+]
+
+json_file = ('json_file', open('your_json_file.json', 'rb'), 'application/json')
+
+# Additional parameters
+payload = {
+    'name': 'Your Name',
+    'age': 30,
+    'dob': '1990-01-01'
+}
+
+# Make the POST request
+response = requests.post(url, files=files, data=payload, files={'json_file': json_file})
+
+# Handle the response
+if response.status_code == 200:
+    result = response.json()
+    print(result)
+else:
+    print("Request failed with status code:", response.status_code)
