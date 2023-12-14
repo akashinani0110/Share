@@ -1,0 +1,28 @@
+import requests
+
+url = "http://your_api_endpoint/upload/demo/sceneries_analysis=Non%20Maa/scenario_analysis_Maa_acct=Maa%20acct/incremental_transition=Incremental%20Transition"
+# Replace 'your_api_endpoint' with your actual FastAPI endpoint
+
+# Set values for the filters
+filters = {
+    "short_term_capital_gain": 150.25,
+    "long_term_capital_gain": 550.75,
+    "permissible_portfolio_drift": 0.05,
+    "last_price_buffer": 0.2,
+    "round_trade_quantity": True,
+    "contribution_or_withdrawal": "contribution",
+    "apply_restrictions": True,
+    "type_of_analysis": ["multiple sceneries", "incremental transition"],
+}
+
+# Make the POST request to the FastAPI endpoint with filters in the request body
+response = requests.post(url, json=filters)
+
+# Handle the response
+if response.status_code == 200:
+    result = response.json()
+    print("Response:")
+    print(result)  # Print the response from the API
+else:
+    print("Request failed with status code:", response.status_code)
+    print("Error:", response.text)  # Print the error message or response content
