@@ -1,0 +1,95 @@
+from fastapi import FastAPI, UploadFile, File, Query
+from typing import Optional, List
+
+app = FastAPI()
+
+# Validate and parse filter values
+def validate_filter_values(
+    short_term_capital_gain: float,
+    long_term_capital_gain: float,
+    permissible_portfolio_drift: float,
+    last_price_buffer: float,
+    round_trade_quantity: bool,
+    contribution_or_withdrawal: Optional[str] = None,
+    apply_restrictions: bool = False,
+    type_of_analysis: Optional[List[str]] = Query(None),
+):
+    # Validate short term capital gain (float, non-negative)
+    if not isinstance(short_term_capital_gain, float) or short_term_capital_gain < 0:
+        raise ValueError("Short term capital gain should be a non-negative float")
+
+    # Validate long term capital gain (float, non-negative)
+    if not isinstance(long_term_capital_gain, float) or long_term_capital_gain < 0:
+        raise ValueError("Long term capital gain should be a non-negative float")
+
+    # Validate permissible portfolio drift (float, non-negative)
+    if not isinstance(permissible_portfolio_drift, float) or permissible_portfolio_drift < 0:
+        raise ValueError("Permissible portfolio drift should be a non-negative float")
+
+    # Validate last price buffer (float, non-negative)
+    if not isinstance(last_price_buffer, float) or last_price_buffer < 0:
+        raise ValueError("Last price buffer should be a non-negative float")
+
+    # Validate round trade quantity (boolean)
+    if not isinstance(round_trade_quantity, bool):
+        raise ValueError("Round trade quantity should be a boolean value")
+
+    # Validate contribution_or_withdrawal if provided
+    if contribution_or_withdrawal and contribution_or_withdrawal not in ['contribution', 'withdrawal']:
+        raise ValueError("Contribution or withdrawal should be 'contribution' or 'withdrawal'")
+
+    # Validate type_of_analysis if provided
+    valid_types_of_analysis = ['multiple sceneries', 'incremental transition']
+    if type_of_analysis:
+        for analysis_type in type_of_analysis:
+            if analysis_type not in valid_types_of_analysis:
+                raise ValueError("Invalid type of analysis")
+
+    # Return the validated filter values
+    return {
+        "short_term_capital_gain": short_term_capital_gain,
+        "long_term_capital_gain": long_term_capital_gain,
+        "permissible_portfolio_drift": permissible_portfolio_drift,
+        "last_price_buffer": last_price_buffer,
+        "round_trade_quantity": round_trade_quantity,
+        "contribution_or_withdrawal": contribution_or_withdrawal,
+        "apply_restrictions": apply_restrictions,
+        "type_of_analysis": type_of_analysis,
+    }
+
+@app.post("/upload/")
+async def upload_files(
+    csv_files: Optional[List[UploadFile]] = File(None, description="List of CSV files to upload"),
+    xml_files: Optional[List[UploadFile]] = File(None, description="List of XML files to upload"),
+    short_term_capital_gain: float = Query(..., description="Short term capital gain"),
+    long_term_capital_gain: float = Query(..., description="Long term capital gain"),
+    permissible_portfolio_drift: float = Query(..., description="Permissible portfolio drift"),
+    last_price_buffer: float = Query(..., description="Last price buffer"),
+    round_trade_quantity: bool = Query(..., description="Round trade quantity"),
+    contribution_or_withdrawal: Optional[str] = Query(None, description="Contribution or withdrawal"),
+    apply_restrictions: bool = Query(False, description="Apply Restrictions"),
+    type_of_analysis: Optional[List[str]] = Query(None, description="Type of analysis (multiple sceneries, incremental transition)"),
+    demo: Optional[str] = Query(None, description="Demo"),
+    scenario_analysis_non_maa: Optional[str] = Query(None, description="Scenario Analysis - Non Maa"),
+    scenario_analysis_maa_acct: Optional[str] = Query(None, description="Scenario Analysis - Maa acct"),
+    incremental_transition: Optional[str] = Query(None, description="Incremental Transition"),
+):
+    try:
+        # Validate and parse filter values
+        validated_filters = validate_filter_values(
+            short_term_capital_gain,
+            long_term_capital_gain,
+            permissible_portfolio_drift,
+            last_price_buffer,
+            round_trade_quantity,
+            contribution_or_withdrawal,
+            apply_restrictions,
+            type_of_analysis,
+        )
+    except ValueError as e:
+        return {"error": str(e)}
+
+    # Process the uploaded files or handle filters as needed
+    # Your processing logic here
+    
+    return validated_filters
