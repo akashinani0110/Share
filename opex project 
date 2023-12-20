@@ -1,0 +1,140 @@
+-- Employees table
+CREATE TABLE Employees (
+    employee_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    department TEXT,
+    position_id INTEGER,
+    FOREIGN KEY (position_id) REFERENCES Positions(position_id)
+);
+
+-- Positions table
+CREATE TABLE Positions (
+    position_id INTEGER PRIMARY KEY,
+    position_name TEXT
+);
+
+-- Hierarchy table
+CREATE TABLE Hierarchy (
+    superior_position_id INTEGER,
+    subordinate_position_id INTEGER,
+    FOREIGN KEY (superior_position_id) REFERENCES Positions(position_id),
+    FOREIGN KEY (subordinate_position_id) REFERENCES Positions(position_id),
+    PRIMARY KEY (superior_position_id, subordinate_position_id)
+);
+
+-- Leaves table
+CREATE TABLE Leaves (
+    leave_id INTEGER PRIMARY KEY,
+    employee_id INTEGER,
+    start_date DATE,
+    end_date DATE,
+    reason TEXT,
+    planned INTEGER DEFAULT 0,
+    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id)
+);
+
+-- LeaveTracker table
+CREATE TABLE LeaveTracker (
+    tracker_id INTEGER PRIMARY KEY,
+    employee_id INTEGER,
+    leave_date DATE,
+    leave_type TEXT,
+    planned INTEGER DEFAULT 0,
+    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id)
+);
+
+-- Processes table
+CREATE TABLE Processes (
+    process_id INTEGER PRIMARY KEY,
+    process_name TEXT
+);
+
+-- TrackerGroups table
+CREATE TABLE TrackerGroups (
+    group_id INTEGER PRIMARY KEY,
+    group_name TEXT,
+    process_id INTEGER,
+    FOREIGN KEY (process_id) REFERENCES Processes(process_id)
+);
+
+-- EmployeeTrackerAssignment table
+CREATE TABLE EmployeeTrackerAssignment (
+    assignment_id INTEGER PRIMARY KEY,
+    employee_id INTEGER,
+    tracker_id INTEGER,
+    group_id INTEGER,
+    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id),
+    FOREIGN KEY (tracker_id) REFERENCES Employees(employee_id),
+    FOREIGN KEY (group_id) REFERENCES TrackerGroups(group_id)
+);
+
+
+CREATE TABLE WorkStatus (
+    status_id INTEGER PRIMARY KEY,
+    employee_id INTEGER,
+    start_date DATE,
+    end_date DATE,
+    status TEXT,
+    task TEXT,
+    work_hours INTEGER,
+    planned INTEGER DEFAULT 0,
+    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id)
+);
+
+
+
+CREATE TABLE Login (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT UNIQUE,
+    password TEXT,
+    employee_id INTEGER,
+    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id)
+);
+
+
+
+#' Add new employee
+addEmployee <- function(con, name, department) {
+  dbExecute(con, "INSERT INTO Employees (name, department) VALUES (?, ?)",
+            params = list(name, department))
+}
+
+#' Update employee information
+updateEmployee <- function(con, oldName, newName, newDepartment) {
+  dbExecute(con, "UPDATE Employees SET name = ?, department = ? WHERE name = ?",
+            params = list(newName, newDepartment, oldName))
+}
+
+#' Delete employee
+deleteEmployee <- function(con, name) {
+  dbExecute(con, "DELETE FROM Employees WHERE name = ?", params = list(name))
+}
+
+#' Get all employees
+getAllEmployees <- function(con) {
+  dbGetQuery(con, "SELECT * FROM Employees")
+}
+
+
+#' Apply for leave
+applyLeave <- function(con, employeeID, startDate, endDate, reason) {
+  dbExecute(con, "INSERT INTO Leaves (employee_id, start_date, end_date, reason, planned)
+                 VALUES (?, ?, ?, ?, ?)", params = list(employeeID, startDate, endDate, reason, 1))
+}
+
+#' Get all leaves
+getAllLeaves <- function(con) {
+  dbGetQuery(con, "SELECT * FROM Leaves")
+}
+
+
+#' Update work status
+updateWorkStatus <- function(con, employeeID, date, status, task, workHours) {
+  dbExecute(con, "INSERT INTO WorkStatus (employee_id, date, status, task, work_hours, planned)
+                 VALUES (?, ?, ?, ?, ?, ?)", params = list(employeeID, date, status, task, workHours, 1))
+}
+
+#' Get all work statuses
+getAllWorkStatus <- function(con) {
+  dbGetQuery(con, "SELECT * FROM WorkStatus")
+}
