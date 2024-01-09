@@ -1,0 +1,46 @@
+import requests
+import threading
+import time
+import os
+
+def send_requests(num_requests):
+    for _ in range(num_requests):
+        start_time = time.time()
+        # Replace with your actual endpoint and payload
+        response = requests.post("http://127.0.0.1:8000/your_endpoint/", json={})
+        end_time = time.time()
+        assert response.status_code == 200  # Add your assertions
+        print(f"Time taken: {end_time - start_time} seconds")
+
+def determine_num_threads():
+    num_cpu_cores = os.cpu_count()
+    if num_cpu_cores is None:
+        print("Number of CPU cores cannot be determined.")
+        return
+
+    # Decide the number of threads based on CPU cores
+    if num_cpu_cores <= 2:
+        num_threads = 2  # Use a minimum of 2 threads
+    elif num_cpu_cores >= 8:
+        num_threads = num_cpu_cores * 2  # Use double the number of CPU cores for systems with 8 or more cores
+    else:
+        num_threads = num_cpu_cores * 3  # Use triple the number of CPU cores for systems with fewer than 8 cores
+
+    print(f"Number of CPU cores: {num_cpu_cores}")
+    print(f"Number of threads to be used: {num_threads}")
+    return num_threads
+
+def test_concurrent_users():
+    num_users = determine_num_threads()  # Get the number of threads to use
+    num_requests_per_user = 10  # Number of requests per user
+    threads = []
+    for _ in range(num_users):
+        thread = threading.Thread(target=send_requests, args=(num_requests_per_user,))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+# Use test_concurrent_users function to simulate concurrent users making multiple requests
+test_concurrent_users()
