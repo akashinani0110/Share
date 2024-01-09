@@ -1,0 +1,24 @@
+import requests
+import threading
+import time
+
+def send_request():
+    start_time = time.time()
+    # Replace with your actual endpoint and payload
+    response = requests.post("http://127.0.0.1:8000/your_endpoint/", json={})
+    end_time = time.time()
+    assert response.status_code == 200  # Add your assertions
+    print(f"Time taken: {end_time - start_time} seconds")
+
+def test_concurrent_requests(num_users):
+    threads = []
+    for _ in range(num_users):
+        thread = threading.Thread(target=send_request)
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+# Use test_concurrent_requests function to simulate concurrent requests
+test_concurrent_requests(10)  # Replace 10 with the number of concurrent users
