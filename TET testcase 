@@ -1,0 +1,48 @@
+from fastapi import FastAPI
+import threading
+import os
+
+app = FastAPI()
+
+def task():
+    # Simulating a time-consuming task
+    print(f"Task started in thread {threading.current_thread().name}")
+    # Add your task logic here
+
+@app.get("/")
+async def root():
+    max_threads = os.cpu_count() * 5  # Adjust multiplier as needed
+    current_threads = threading.active_count()
+    threads_to_create = max_threads - current_threads
+
+    print(f"Max threads allowed: {max_threads}")
+    print(f"Current active threads: {current_threads}")
+
+    for i in range(threads_to_create):
+        thread = threading.Thread(target=task)
+        thread.start()
+
+    return {"message": f"Added {threads_to_create} threads for tasks."}
+
+
+
+
+from fastapi.testclient import TestClient
+from main import app  # Replace 'main' with the file name containing your FastAPI app
+from concurrent.futures import ThreadPoolExecutor
+import time
+
+client = TestClient(app)
+
+def send_concurrent_requests():
+    start_time = time.time()  # Record start time
+    response = client.post("/your_endpoint/", json={})  # Replace with your endpoint and payload
+    end_time = time.time()  # Record end time
+    assert response.status_code == 200  # Add your assertion
+    print(f"Time taken: {end_time - start_time} seconds")
+
+def test_concurrent_requests():
+    num_users = 10  # Number of concurrent users
+    with ThreadPoolExecutor(max_workers=num_users) as executor:
+        futures = [executor.submit(send_concurrent_requests) for _ in range(num_users)]
+        concurrent_results = [future.result() for future in futures]
