@@ -1,0 +1,119 @@
+from fastapi import FastAPI
+import threading
+import os
+
+app = FastAPI()
+
+# Function to simulate a time-consuming task
+def task():
+    print(f"Task started in thread {threading.current_thread().name}")
+    # Simulating a time-consuming task logic here
+    # Replace this with the actual logic of your task
+
+# Define a route for the root endpoint ("/")
+@app.get("/")
+async def root():
+    # Determine the maximum allowed threads based on CPU cores multiplied by a factor (adjust as needed)
+    max_threads = os.cpu_count() * 5
+    # Get the number of currently active threads
+    current_threads = threading.active_count()
+    # Calculate the number of threads to create to reach the maximum allowed threads
+    threads_to_create = max_threads - current_threads
+
+    print(f"Max threads allowed: {max_threads}")
+    print(f"Current active threads: {current_threads}")
+
+    # Create threads for tasks if the number of active threads is below the maximum allowed threads
+    for i in range(threads_to_create):
+        thread = threading.Thread(target=task)  # Create a new thread targeting the task function
+        thread.start()  # Start the thread to perform the task
+
+    # Return a message indicating the number of threads added for tasks
+    return {"message": f"Added {threads_to_create} threads for tasks."}
+
+
+
+
+
+import requests  # Import the 'requests' library to perform HTTP requests
+import threading  # Import the 'threading' module to manage threads
+import time  # Import the 'time' module for time-related operations
+import os  # Import the 'os' module for system-related functions
+
+# Function to send requests from a specific thread
+def send_requests(thread_name, request_number):
+    for i in range(request_number):  # Loop through the specified number of requests per thread
+        start_time = time.time()  # Record the start time of each request
+        # Replace with your actual endpoint and payload
+        response = requests.post("http://127.0.0.1:8000/your_endpoint/", json={})
+        end_time = time.time()  # Record the end time of each request
+        assert response.status_code == 200  # Add assertions to check the response status code
+        # Print thread name, request number, and time taken for each request
+        print(f"Thread '{thread_name}' - Request {i + 1}: Time taken: {end_time - start_time} seconds")
+
+# Function to determine the number of threads based on CPU cores
+def determine_num_threads():
+    num_cpu_cores = os.cpu_count()  # Get the number of CPU cores available
+    if num_cpu_cores is None:  # If the number of CPU cores cannot be determined
+        print("Number of CPU cores cannot be determined.")
+        return
+
+    # Decide the number of threads based on the number of CPU cores available
+    if num_cpu_cores <= 2:
+        num_threads = 2  # Use a minimum of 2 threads
+    elif num_cpu_cores >= 8:
+        num_threads = num_cpu_cores * 2  # Use double the number of CPU cores for systems with 8 or more cores
+    else:
+        num_threads = num_cpu_cores * 3  # Use triple the number of CPU cores for systems with fewer than 8 cores
+
+    print(f"Number of CPU cores: {num_cpu_cores}")  # Print the number of CPU cores detected
+    print(f"Number of threads to be used: {num_threads}")  # Print the number of threads calculated
+    return num_threads  # Return the calculated number of threads
+
+# Function to simulate concurrent users making multiple requests
+def test_concurrent_users():
+    num_users = determine_num_threads()  # Get the number of threads to use based on CPU cores
+    num_requests_per_user = 10  # Number of requests per user
+    threads = []
+    for i in range(num_users):  # Create threads for each user
+        # Create a thread targeting the send_requests function with arguments (thread name, number of requests)
+        thread = threading.Thread(target=send_requests, args=(f"Thread-{i+1}", num_requests_per_user,))
+        threads.append(thread)  # Add the thread to the list
+        thread.start()  # Start the thread
+
+    for thread in threads:  # Wait for all threads to complete before continuing
+        thread.join()
+
+# Use test_concurrent_users function to simulate concurrent users making multiple requests
+test_concurrent_users()
+
+
+
+
+import requests
+import threading
+import time
+
+# Function to send a single request
+def send_request(thread_name):
+    start_time = time.time()  # Record start time for the request
+    # Replace with your actual endpoint and payload
+    response = requests.post("http://127.0.0.1:8000/your_endpoint/", json={})
+    end_time = time.time()  # Record end time for the request
+    assert response.status_code == 200  # Add your assertions for the response status code
+    print(f"Thread '{thread_name}': Time taken: {end_time - start_time} seconds")  # Print thread name and time taken
+
+# Function to simulate concurrent requests from multiple threads
+def test_concurrent_requests(num_users):
+    threads = []
+    for i in range(num_users):
+        # Create a thread for each user and target the send_request function
+        thread = threading.Thread(target=send_request, args=(f"Thread-{i+1}",))  # Pass thread name as argument
+        threads.append(thread)  # Add thread to the list of threads
+        thread.start()  # Start the thread
+
+    for thread in threads:
+        thread.join()  # Wait for all threads to complete before continuing
+
+# Simulate concurrent requests from 10 users
+test_concurrent_requests(10)
