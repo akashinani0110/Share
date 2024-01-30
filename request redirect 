@@ -1,0 +1,52 @@
+from fastapi import FastAPI, HTTPException, Depends
+from typing import List
+import threading
+import requests
+
+app = FastAPI()
+
+# Define your API servers with their corresponding request tracking
+api_servers = [
+    {'url': 'http://server1.com', 'active_requests': 0, 'lock': threading.Lock()},
+    {'url': 'http://server2.com', 'active_requests': 0, 'lock': threading.Lock()},
+    # Add more servers as needed
+]
+
+def get_available_server():
+    # Choose the server with the least active requests
+    chosen_server = min(api_servers, key=lambda server: server['active_requests'])
+    chosen_server['active_requests'] += 1
+
+    return chosen_server['url'], chosen_server['lock']
+
+def release_server(server_url, lock):
+    # Release the server by decrementing its active request count
+    with lock:
+        for server in api_servers:
+            if server['url'] == server_url:
+                server['active_requests'] -= 1
+
+@app.post("/")
+async def read_root(request_data: dict, redirect_path: str = "/path"):
+    # Choose the next available server with the least active requests
+    chosen_server_url, lock = get_available_server()
+
+    try:
+        # Redirect the POST request to the chosen server
+        response = requests.post(f"{chosen_server_url}{redirect_path}", json=request_data)
+        # Perform your processing or forward the request to the chosen server
+
+        # Simulate processing on the chosen server
+        await asyncio.sleep(2)
+
+        return {"response": f"POST Request forwarded to {chosen_server_url} and processed successfully"}
+
+    finally:
+        # Release the chosen server after processing
+        release_server(chosen_server_url, lock)
+
+if __name__ == "__main__":
+    import uvicorn
+
+    # Run the FastAPI application with uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
