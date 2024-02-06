@@ -1,0 +1,24 @@
+library(tidyverse)
+library(lubridate)
+
+# Assuming df is your dataframe with a 'date' column
+
+# Step 1: Extract month-year
+df <- df %>%
+  mutate(month_year = format(date, "%Y-%m"))
+
+# Step 2: Find the top month for each year
+top_month_per_year <- df %>%
+  mutate(year = year(date),
+         month = month(date, label = TRUE)) %>%
+  group_by(year) %>%
+  summarise(top_month = month[which.max(date)])
+
+# Step 3: Filter dataframe to keep only the rows with the top month for each year
+filtered_df <- df %>%
+  mutate(year = year(date),
+         month = month(date, label = TRUE)) %>%
+  inner_join(top_month_per_year, by = c("year" = "year", "month" = "top_month"))
+
+# Step 4: Convert filtered dataframe to list of tuples
+selected_dates_and_entries <- split(filtered_df, filtered_df$month_year)
