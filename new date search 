@@ -1,0 +1,17 @@
+# Sample date
+date <- "February 2024"
+
+# Extract year and month
+date_parts <- strsplit(date, " ")[[1]]
+year <- as.integer(date_parts[2])
+month <- match(date_parts[1], month.name)
+
+# Check if the date is after March 2023
+if (year > 2023 | (year == 2023 & month > 3)) {
+  result <- TRUE
+} else {
+  result <- FALSE
+}
+
+# Print the result
+print(result)
