@@ -1,0 +1,56 @@
+# List of absolute file paths
+absolute_paths <- c("path/to/file1.csv", "path/to/file2.xls", "path/to/file3.rdata")
+
+# Function to read and make notes of data structures
+read_and_note_data_structures <- function(file_path) {
+  # Get file extension
+  file_extension <- tools::file_ext(file_path)
+  
+  # Initialize data structure note
+  data_structure_note <- list()
+  
+  # Read file based on extension
+  if (file_extension %in% c("csv", "txt")) {
+    # Read CSV file
+    data <- read.csv(file_path)
+    # Note data structure
+    data_structure_note$data_structure <- class(data)
+    data_structure_note$data_summary <- summary(data)
+  } else if (file_extension %in% c("xls", "xlsx")) {
+    # Read Excel file
+    library(readxl)
+    xls_sheets <- excel_sheets(file_path)
+    sheet_data <- lapply(xls_sheets, function(sheet) {
+      data <- read_excel(file_path, sheet = sheet)
+      list(sheet_name = sheet, data_structure = class(data), data_summary = summary(data))
+    })
+    data_structure_note <- sheet_data
+  } else if (file_extension == "rdata") {
+    # Load RData file
+    load(file_path)
+    # Note data structure
+    data_structure_note$data_structure <- class(get(ls()))
+    data_structure_note$data_summary <- summary(get(ls()))
+  } else {
+    print(paste("Unsupported file format:", file_extension))
+    return(NULL)
+  }
+  
+  # Combine with file path
+  data_structure_note <- list(file_path = file_path, data = data_structure_note)
+  return(data_structure_note)
+}
+
+# List to store notes of data structures
+data_structure_notes <- list()
+
+# Loop through each file path
+for (path in absolute_paths) {
+  note <- read_and_note_data_structures(path)
+  if (!is.null(note)) {
+    data_structure_notes[[length(data_structure_notes) + 1]] <- note
+  }
+}
+
+# Print or use the notes of data structures
+print(data_structure_notes)
