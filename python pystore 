@@ -1,0 +1,51 @@
+import pystore
+
+def get_items_by_names(store_path, collection_name, item_names):
+    # Connect to the PyStore database
+    store = pystore.Store(store_path)
+
+    # Open the collection
+    collection = store.collection(collection_name)
+
+    # Initialize a list to store the items
+    items = []
+
+    # Loop through each item name
+    for name in item_names:
+        # Get the item by name
+        item = collection.item(name)
+        # Append the item to the list
+        items.append(item)
+
+    return items
+
+# Example usage
+if __name__ == "__main__":
+    store_path = "/path/to/your/pystore"
+    collection_name = "your_collection_name"
+    item_names = ["item1", "item2", "item3"]  # List of item names
+    items = get_items_by_names(store_path, collection_name, item_names)
+    for item in items:
+        print(item)
+
+
+
+# Install and load reticulate package
+install.packages("reticulate")
+library(reticulate)
+
+# Run the Python script and load the function
+source_python("read_items.py")
+
+# Specify the parameters
+store_path <- "/path/to/your/pystore"
+collection_name <- "your_collection_name"
+item_names <- c("item1", "item2", "item3")  # List of item names
+
+# Call the Python function to retrieve the items
+items <- get_items_by_names(store_path, collection_name, item_names)
+
+# Print the items
+for (item in items) {
+  print(item)
+}
