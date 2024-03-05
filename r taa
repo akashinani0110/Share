@@ -1,0 +1,18 @@
+insert_differences <- function(df1, df2) {
+  differences <- NULL
+  num_cols <- ncol(df1)
+  for (i in seq(3, num_cols, by = 3)) {
+    # Calculate differences between corresponding columns in df1 and df2
+    diff <- df1[, i] - df2[, i]
+    # Append differences to the existing differences variable
+    differences <- cbind(differences, diff)
+  }
+  # Add new columns after every 3rd column
+  for (j in seq(3, ncol(differences), by = 1)) {
+    df1 <- cbind(df1[, 1:j], differences[, j/3], df1[, (j + 1):num_cols])
+  }
+  return(df1)
+}
+
+# Call the function to insert differences into df1
+df1_with_differences <- insert_differences(df1, df2)
