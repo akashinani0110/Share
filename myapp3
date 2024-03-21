@@ -1,0 +1,67 @@
+import streamlit as st
+
+class LoginApp:
+    def __init__(self):
+        self.password_placeholder = st.empty()
+        self.password = self.password_placeholder.text_input("Enter Password:", type="password")
+        self.logo_path = "your_logo.png"
+        self.title = "Your App Title"
+        self.logged_in = False
+
+    def run(self):
+        if self.password != "xyz":
+            st.error("Incorrect password. Please try again.")
+        else:
+            self.logged_in = True
+            self.password_placeholder.empty()  # Hide password input field
+            st.success("Password correct! Redirecting to the app...")
+            self.redirect_to_main_app()
+
+    def redirect_to_main_app(self):
+        main_app = MainApp()
+        main_app.run()
+
+class MainApp:
+    def __init__(self):
+        self.logo_path = "your_logo.png"
+        self.title = "Your App Title"
+        self.tab_names = ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5"]
+
+    def run(self):
+        self.display_header()
+        self.display_tabs()
+
+    def display_header(self):
+        st.markdown(f"""
+            <style>
+                .reportview-container .main .block-container {{
+                    padding-top: 1px;
+                    padding-right: 1px;
+                    padding-left: 1px;
+                    padding-bottom: 1px;
+                }}
+            </style>
+            """, unsafe_allow_html=True)
+
+        st.markdown(f"<h1 style='text-align: center; font-size: 24px;'>{self.title}</h1>", unsafe_allow_html=True)
+        st.image(self.logo_path, width=100)  # Adjust size as needed
+
+    def display_tabs(self):
+        selected_tab = st.radio("Select Tab:", self.tab_names)
+        if selected_tab == "Tab 1":
+            self.display_tab1()
+        elif selected_tab == "Tab 2":
+            self.display_tab2()
+        # Repeat for other tabs
+
+    def display_tab1(self):
+        st.write("Content for Tab 1 goes here.")
+
+    def display_tab2(self):
+        st.write("Content for Tab 2 goes here.")
+    # Repeat for other tabs
+
+# Main
+if __name__ == "__main__":
+    login_app = LoginApp()
+    login_app.run()
