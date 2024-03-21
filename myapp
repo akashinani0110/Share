@@ -1,0 +1,58 @@
+import streamlit as st
+
+class MyApp:
+    def __init__(self):
+        self.password = st.text_input("Enter Password:", type="password")
+        self.logo_path = "your_logo.png"
+        self.dashboard_name = "Dry Run Diagnostic"
+        self.tab_names = ["Asset", "Tab 2", "Tab 3", "Tab 4", "Tab 5"]
+
+    def run(self):
+        if self.password != "xyz":
+            st.error("Incorrect password. Please try again.")
+        else:
+            st.success("Password correct! Welcome to the app.")
+            self.display_app()
+
+    def display_app(self):
+        self.display_logo()
+        self.display_dashboard_name()
+        self.display_tabs()
+
+    def display_logo(self):
+        st.image(self.logo_path, use_column_width=True)
+
+    def display_dashboard_name(self):
+        st.title(self.dashboard_name)
+
+    def display_tabs(self):
+        selected_tab = st.radio("Select Tab:", self.tab_names)
+        if selected_tab == "Asset":
+            asset_tab = AssetTab()
+            asset_tab.display()
+
+class AssetTab:
+    def __init__(self):
+        self.assets = ["Asset 1", "Asset 2", "Asset 3"]
+        self.relative_to = st.checkbox("Relative to:")
+        self.chart_types = ["Line Chart", "Bar Chart", "Scatter Plot"]
+        self.end_date_options = ["Option 1", "Option 2", "Option 3"]
+
+    def display(self):
+        self.display_inputs()
+
+    def display_inputs(self):
+        asset = st.selectbox("Asset:", options=self.assets)
+        if self.relative_to:
+            relative_asset = st.selectbox("Relative Asset:", options=self.assets)
+        chart_type = st.radio("Chart Type:", options=self.chart_types)
+        numeric_input1 = st.number_input("Numeric Input 1:")
+        numeric_input2 = st.number_input("Numeric Input 2:")
+        end_date_option = st.radio("End Date:", options=self.end_date_options)
+        apply_all = st.checkbox("Apply All")
+        # Draw charts based on inputs
+
+# Main
+if __name__ == "__main__":
+    app = MyApp()
+    app.run()
