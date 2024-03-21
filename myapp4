@@ -1,0 +1,83 @@
+import streamlit as st
+
+class LoginApp:
+    def __init__(self):
+        self.password_placeholder = st.empty()
+        self.password = self.password_placeholder.text_input("Enter Password:", type="password")
+        self.logo_path = "your_logo.png"
+        self.title = "Your App Title"
+        self.logged_in = False
+
+    def run(self):
+        if self.password != "xyz":
+            st.error("Incorrect password. Please try again.")
+        else:
+            self.logged_in = True
+            self.password_placeholder.empty()  # Hide password input field
+            st.success("Password correct! Redirecting to the app...")
+            self.redirect_to_main_app()
+
+    def redirect_to_main_app(self):
+        main_app = MainApp()
+        main_app.run()
+
+class MainApp:
+    def __init__(self):
+        self.logo_path = "your_logo.png"
+        self.title = "Your App Title"
+        self.nav_options = ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5"]
+
+    def run(self):
+        self.display_header()
+        selected_tab = self.display_sidebar()
+        self.display_tabs(selected_tab)
+
+    def display_header(self):
+        st.title(self.title)
+        st.image(self.logo_path, width=100)  # Adjust size as needed
+
+    def display_sidebar(self):
+        selected_tab = st.sidebar.radio("Select Tab:", self.nav_options)
+        return selected_tab
+
+    def display_tabs(self, selected_tab):
+        if selected_tab == "Tab 1":
+            tab1_app = Tab1App()
+            tab1_app.run()
+        elif selected_tab == "Tab 2":
+            tab2_app = Tab2App()
+            tab2_app.run()
+        # Repeat for other tabs
+
+class Tab1App:
+    def __init__(self):
+        self.sub_tabs = ["Sub Tab 1", "Sub Tab 2", "Sub Tab 3", "Sub Tab 4", "Sub Tab 5"]
+
+    def run(self):
+        selected_sub_tab = st.radio("Select Sub Tab:", self.sub_tabs)
+        if selected_sub_tab == "Sub Tab 1":
+            sub_tab1_app = SubTab1App()
+            sub_tab1_app.run()
+        elif selected_sub_tab == "Sub Tab 2":
+            sub_tab2_app = SubTab2App()
+            sub_tab2_app.run()
+        # Repeat for other sub tabs
+
+class SubTab1App:
+    def run(self):
+        st.write("Content for Sub Tab 1 goes here.")
+
+class SubTab2App:
+    def run(self):
+        st.write("Content for Sub Tab 2 goes here.")
+    # Repeat for other sub tabs
+
+class Tab2App:
+    def run(self):
+        st.write("Content for Tab 2 goes here.")
+    # Repeat for other tabs
+
+# Main
+if __name__ == "__main__":
+    login_app = LoginApp()
+    login_app.run()
