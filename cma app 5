@@ -1,0 +1,64 @@
+import streamlit as st
+
+class TimeSeriesTab:
+    def __init__(self):
+        self.filter_options = ["Option 1", "Option 2", "Option 3"]  # Sample filter options
+
+        self.assets = {
+            "Option 1": ["Asset 1", "Asset 2", "Asset 3"],
+            "Option 2": ["Asset A", "Asset B", "Asset C"],
+            "Option 3": ["Asset X", "Asset Y", "Asset Z"]
+        }
+        self.relative_to_options = ["Option 1", "Option 2", "Option 3"]  # Sample options for relative to
+        self.chart_types = ["Line Chart", "Bar Chart", "Scatter Plot"]  # Sample chart types
+
+    def run(self):
+        col1, col2 = st.columns([2, 1])  # Divide the space into two columns
+
+        with col1:
+            selected_filter = st.selectbox("Select Filter Option:", self.filter_options)
+
+        with col2:
+            st.write("")  # Empty space to align vertically with the filter dropdown
+            st.button("Filter")
+
+        filter_button_clicked = st.button("Filter")
+        if filter_button_clicked:
+            col1, col2 = st.columns([1, 1])  # Divide the space into two columns
+
+            with col1:
+                self.display_asset_dropdown(selected_filter)
+                self.display_relative_to_checkbox()
+                self.display_chart_type_radio()
+
+            with col2:
+                self.display_numeric_dropdowns()
+                self.display_end_date_radio()
+                self.display_apply_all_checkbox()
+
+    def display_asset_dropdown(self, selected_filter):
+        selected_assets = self.assets[selected_filter]
+        st.selectbox("Asset:", selected_assets)
+
+    def display_relative_to_checkbox(self):
+        relative_to = st.checkbox("Relative to")
+        if relative_to:
+            st.selectbox("Relative to:", self.relative_to_options)
+
+    def display_chart_type_radio(self):
+        st.radio("Chart Type:", self.chart_types)
+
+    def display_numeric_dropdowns(self):
+        st.number_input("Numeric Input 1:")
+        st.number_input("Numeric Input 2:")
+
+    def display_end_date_radio(self):
+        st.radio("End Date:", ["Option 1", "Option 2", "Option 3"])
+
+    def display_apply_all_checkbox(self):
+        st.checkbox("Apply All")
+
+# Main
+if __name__ == "__main__":
+    time_series_tab = TimeSeriesTab()
+    time_series_tab.run()
