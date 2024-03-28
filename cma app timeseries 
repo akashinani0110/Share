@@ -1,0 +1,76 @@
+import streamlit as st
+import pandas as pd
+
+class TimeSeriesTab:
+    def __init__(self):
+        self.chart_types = ["Line Chart", "Bar Chart"]  # Sample chart types
+        self.data_periods = ["Daily", "Weekly", "Monthly"]  # Sample data periods
+        self.end_options = ["Option 1", "Option 2"]  # Sample options for ending
+        self.asset_classes = pd.read_csv("asset_classes.csv")  # Load asset classes from CSV
+        self.factors = pd.read_csv("factors.csv")  # Load factors from CSV
+        self.factor_prediators = pd.read_csv("factor_prediators.csv")  # Load factor prediators from CSV
+        self.time_series = pd.read_csv("time_series.csv")  # Load time series from CSV
+
+    def run(self):
+        with st.expander("Filter"):
+            selected_option = st.selectbox("Select Option:", ["Asset Class", "Factor", "Factor Prediator", "Subsequent Return", "Predictive"])
+
+            if selected_option == "Asset Class":
+                self.display_asset_class_filters()
+            elif selected_option == "Factor":
+                self.display_factor_filters()
+            elif selected_option == "Factor Prediator":
+                self.display_factor_prediator_filters()
+            elif selected_option == "Subsequent Return":
+                self.display_subsequent_return_filters()
+            elif selected_option == "Predictive":
+                self.display_predictive_filters()
+
+    def display_asset_class_filters(self):
+        selected_asset_class = st.selectbox("Asset Class:", self.asset_classes["Asset Class"])
+        self.display_shared_filters()
+        # Additional filters specific to Asset Class can be added here
+
+    def display_factor_filters(self):
+        selected_factor = st.selectbox("Factor:", self.factors["Factor"])
+        self.display_shared_filters()
+        st.checkbox("Factor Predictor")
+        # Additional filters specific to Factor can be added here
+
+    def display_factor_prediator_filters(self):
+        selected_factor_prediator = st.selectbox("Factor Prediator:", self.factor_prediators["Factor Prediator"])
+        self.display_shared_filters()
+        st.checkbox("Factor Predictor")
+        # Additional filters specific to Factor Prediator can be added here
+
+    def display_subsequent_return_filters(self):
+        selected_factor = st.selectbox("Select Factor:", self.factors["Factor"])
+        selected_time_series = st.selectbox("Select Time Series:", self.time_series["Time Series"])
+        self.display_shared_filters()
+        st.radio("Ending:", self.end_options)
+        st.checkbox("Data Slider")
+        # Additional filters specific to Subsequent Return can be added here
+
+    def display_predictive_filters(self):
+        selected_factor_prediator = st.selectbox("Select Factor Prediator:", self.factor_prediators["Factor Prediator"])
+        selected_time_series = st.selectbox("Select Subsequent Time Series:", self.time_series["Time Series"])
+        self.display_shared_filters()
+        st.selectbox("Subsequent T - year:", [1, 2, 3])
+        st.radio("Ending:", self.end_options)
+        st.checkbox("Data Slider")
+
+    def display_shared_filters(self):
+        st.checkbox("Relative to")
+        st.selectbox("Trailing T years:", [1, 2, 3])
+        st.radio("Scale:", ["Option 1", "Option 2"])
+        st.checkbox("Momentum Indicator")
+        selected_data_period = st.selectbox("Select Data Period:", self.data_periods)
+        if selected_data_period == "Custom":
+            start_date = st.date_input("Start Date:")
+            end_date = st.date_input("End Date:")
+        st.checkbox("Apply All")
+
+# Main
+if __name__ == "__main__":
+    time_series_tab = TimeSeriesTab()
+    time_series_tab.run()
