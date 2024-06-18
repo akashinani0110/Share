@@ -1,0 +1,20 @@
+import pandas as pd
+import numpy as np
+
+# Generate a date range for the time series
+date_range = pd.date_range(start='2023-01-01', periods=2, freq='D')
+
+# Define the data for the table including the time series
+data = {
+    ("Time Series", ""): date_range,
+    ("Main Header 1", "Sub Header 1"): ["Row 1, Col 1", "Row 2, Col 1"],
+    ("Main Header 1", "Sub Header 2"): ["Row 1, Col 2", "Row 2, Col 2"],
+    ("Main Header 2", "Sub Header 1"): ["Row 1, Col 3", "Row 2, Col 3"],
+    ("Main Header 2", "Sub Header 2"): ["Row 1, Col 4", "Row 2, Col 4"],
+}
+
+# Create the DataFrame
+df = pd.DataFrame(data)
+
+# Print the DataFrame
+print(df)
