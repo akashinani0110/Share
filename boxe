@@ -1,0 +1,40 @@
+import pandas as pd
+import numpy as np
+import plotly.graph_objs as go
+import plotly.io as pio
+
+# Set seed for reproducibility
+np.random.seed(0)
+
+# Number of time series
+num_series = 10
+
+# Generate dummy data for monthly returns
+dates = pd.date_range(start='1/1/2020', periods=24, freq='M')
+data = np.random.randn(len(dates), num_series)
+returns_df = pd.DataFrame(data, index=dates, columns=[f'Series_{i}' for i in range(1, num_series+1)])
+
+# Initialize an empty list to store individual box plot figures
+boxplot_figs = []
+
+# Create individual box plots for each series
+for column in returns_df.columns:
+    # Get the data for the current series
+    series_data = returns_df[column]
+    
+    # Create a box plot trace for the current series
+    boxplot_trace = go.Box(y=series_data, name=column)
+    
+    # Create the figure for the current series
+    fig = go.Figure(data=[boxplot_trace])
+    fig.update_layout(title=f'Box Plot of {column} Monthly Returns Data',
+                      xaxis_title='Time',
+                      yaxis_title='Returns')
+    
+    # Append the figure to the list
+    boxplot_figs.append(fig)
+
+# Save each figure to HTML files and open them
+for i, fig in enumerate(boxplot_figs):
+    filename = f'boxplot_series_{i+1}.html'
+    pio.write_html(fig, file=filename, auto_open=True)
