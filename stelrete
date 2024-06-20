@@ -1,0 +1,111 @@
+import streamlit as st
+import pandas as pd
+
+def generate_html_table(df):
+    # Define the header structure
+    headers = [
+        ("Asset Class/Factor", 1, 1),
+        ("Category", 1, 1),
+        ("Geometric Return", 1, 2),
+        ("Arithmetic Return", 1, 2),
+        ("Volatility", 1, 2),
+        ("Sharpe Ratio", 1, 2)
+    ]
+
+    subheaders = [
+        ("Proposed", 1),
+        ("1-Yr Change", 1),
+        ("Proposed", 1),
+        ("1-Yr Change", 1),
+        ("Proposed", 1),
+        ("1-Yr Change", 1),
+        ("Proposed", 1),
+        ("1-Yr Change", 1)
+    ]
+
+    # Start building the HTML table
+    html = """
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="background-color: #4CAF50; color: white;">
+    """
+
+    # Add the main headers
+    for header, rowspan, colspan in headers:
+        html += f'<th rowspan="{rowspan}" colspan="{colspan}">{header}</th>'
+    html += "</tr><tr style='background-color: #4CAF50; color: white;'>"
+
+    # Add the subheaders
+    for subheader, colspan in subheaders:
+        html += f'<th colspan="{colspan}">{subheader}</th>'
+    html += "</tr></thead><tbody>"
+
+    # Add the data rows
+    for i in range(len(df)):
+        html += "<tr>"
+        for col in df.columns:
+            html += f"<td>{df[col][i]}</td>"
+        html += "</tr>"
+
+    html += """
+      </tbody>
+    </table>
+    """
+    return html
+
+# Data from the image
+data = {
+    "Asset Class/Factor": [
+        "U.S. Large Cap Growth", "U.S. Large Cap Value", "U.S. Small Cap Growth", 
+        "U.S. Small Cap Value", "International Developed Equity", 
+        "Emerging Markets", "U.S. Governments", "U.S. Mortgages"
+    ],
+    "Category": [
+        "Equity", "Equity", "Equity", "Equity", "Equity", 
+        "Equity", "Fixed Income", "Fixed Income"
+    ],
+    "Geometric Return (Proposed)": [
+        "9.4%", "10.2%", "10.5%", "10.9%", "7.6%", 
+        "7.6%", "4%", "4.1%"
+    ],
+    "Geometric Return (1-Yr Change)": [
+        "0.1%", "0%", "0.1%", "0%", "0.2%", 
+        "0.1%", "-0.2%", "-0.2%"
+    ],
+    "Arithmetic Return (Proposed)": [
+        "11.1%", "11.5%", "13.4%", "12.9%", "9.3%", 
+        "10.1%", "4.1%", "4.3%"
+    ],
+    "Arithmetic Return (1-Yr Change)": [
+        "0.1%", "0%", "0.1%", "0%", "0.2%", 
+        "0.1%", "-0.2%", "-0.2%"
+    ],
+    "Volatility (Proposed)": [
+        "19.5%", "17.3%", "26.2%", "21.6%", "19.2%", 
+        "24.0%", "4.9%", "5.7%"
+    ],
+    "Volatility (1-Yr Change)": [
+        "0%", "0%", "-0.1%", "0.1%", "0%", 
+        "0%", "0%", "0%"
+    ],
+    "Sharpe Ratio (Proposed)": [
+        "0.4", "0.48", "0.39", "0.45", "0.31", 
+        "0.29", "0.17", "0.18"
+    ],
+    "Sharpe Ratio (1-Yr Change)": [
+        "0", "0", "0", "0", "0.01", 
+        "0", "-0.03", "-0.03"
+    ]
+}
+
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Add a title and subtitle
+st.title("Proposed (2024) - Current (2023) Capital Market Assumptions for Merrill US")
+
+# Generate the HTML table
+html_table = generate_html_table(df)
+
+# Display the table using st.markdown with the raw HTML
+st.markdown(html_table, unsafe_allow_html=True)
