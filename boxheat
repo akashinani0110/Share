@@ -1,0 +1,50 @@
+import pandas as pd
+import numpy as np
+import plotly.graph_objs as go
+import plotly.io as pio
+
+# Set seed for reproducibility
+np.random.seed(0)
+
+# Number of time series
+num_series = 10
+
+# Generate dummy data for monthly returns
+dates = pd.date_range(start='1/1/2020', periods=24, freq='M')
+data = np.random.randn(len(dates), num_series)
+returns_df = pd.DataFrame(data, index=dates, columns=[f'Series_{i}' for i in range(1, num_series+1)])
+
+# Get the last points of each series
+last_points = returns_df.iloc[-1]
+
+# Create a box plot trace
+boxplot_trace = go.Box(y=returns_df.values.T, boxpoints='all', jitter=0.5, name='Monthly Returns')
+
+# Create a scatter trace for marking the last points
+scatter_trace = go.Scatter(x=np.arange(1, num_series + 1), y=last_points,
+                           mode='markers', marker=dict(color='red', size=10),
+                           name='Last Point')
+
+# Create the figure for box plot
+boxplot_fig = go.Figure(data=[boxplot_trace, scatter_trace])
+boxplot_fig.update_layout(title='Box Plot of Monthly Returns Data with Last Point Marked',
+                          xaxis_title='Time Series',
+                          yaxis_title='Returns')
+
+# Calculate correlation matrix
+correlation_matrix = returns_df.corr()
+
+# Create a heatmap trace
+heatmap_trace = go.Heatmap(z=correlation_matrix.values,
+                           x=correlation_matrix.columns,
+                           y=correlation_matrix.index)
+
+# Create the figure for heatmap
+heatmap_fig = go.Figure(data=heatmap_trace)
+heatmap_fig.update_layout(title='Correlation Heatmap of Monthly Returns Data',
+                          xaxis_title='Time Series',
+                          yaxis_title='Time Series')
+
+# Save the figures to HTML files
+pio.write_html(boxplot_fig, file='boxplot_with_last_point.html', auto_open=True)
+pio.write_html(heatmap_fig, file='correlation_heatmap.html', auto_open=True)
