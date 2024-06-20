@@ -1,0 +1,82 @@
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+
+# Data from the image
+data = {
+    "Asset Class/Factor": [
+        "U.S. Large Cap Growth", "U.S. Large Cap Value", "U.S. Small Cap Growth", 
+        "U.S. Small Cap Value", "International Developed Equity", 
+        "Emerging Markets", "U.S. Governments", "U.S. Mortgages", "U.S. Corporates",
+        "U.S. High Yield", "Hedge Funds", "Private Equity", "Cash", "Private Real Assets",
+        "International Fixed Income"
+    ],
+    "Current Expected Geometric Return": [
+        10, 9, 11, 10.5, 7.5, 8, 3.5, 4, 5, 6, 10.5, 11.5, 2, 5, 4.5
+    ],
+    "Proposed Expected Geometric Return": [
+        9.4, 10.2, 10.5, 10.9, 7.6, 7.6, 4, 4.1, 4.9, 5.5, 10.5, 12, 1.8, 5.2, 4.7
+    ]
+}
+
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Calculate min and max for the shaded band
+min_band = df["Current Expected Geometric Return"] - 0.24
+max_band = df["Current Expected Geometric Return"] + 0.15
+middle_band = (min_band + max_band) / 2
+
+# Create a scatter plot using Plotly
+fig = go.Figure()
+
+# Add shaded band
+fig.add_trace(go.Scatter(
+    x=df["Current Expected Geometric Return"],
+    y=min_band,
+    fill=None,
+    mode='lines',
+    line_color='lightgrey',
+    showlegend=False
+))
+
+fig.add_trace(go.Scatter(
+    x=df["Current Expected Geometric Return"],
+    y=max_band,
+    fill='tonexty',  # fill area between trace0 and trace1
+    mode='lines',
+    line_color='lightgrey',
+    showlegend=False
+))
+
+# Add middle line
+fig.add_trace(go.Scatter(
+    x=df["Current Expected Geometric Return"],
+    y=middle_band,
+    mode='lines',
+    line=dict(color='grey', dash='dash'),
+    showlegend=False
+))
+
+# Add scatter points
+fig.add_trace(go.Scatter(
+    x=df["Current Expected Geometric Return"],
+    y=df["Proposed Expected Geometric Return"],
+    mode='markers+text',
+    text=df["Asset Class/Factor"],
+    textposition='top center',
+    marker=dict(color='blue', size=10),
+    showlegend=False
+))
+
+# Update layout for better readability
+fig.update_layout(
+    title="Proposed (2024) vs. Current (2023) Expected Geometric Return",
+    xaxis=dict(title='Current (2022) Expected Geometric Return'),
+    yaxis=dict(title='Proposed (2024) Expected Geometric Return'),
+    showlegend=False
+)
+
+# Display the plot in Streamlit
+st.title("Proposed (2024) vs. Current (2023) Expected Geometric Return")
+st.plotly_chart(fig, use_container_width=True)
