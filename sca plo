@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import streamlit as st
+
+# Generate dummy data
+np.random.seed(0)
+data = np.random.randn(100, 2)
+df = pd.DataFrame(data, columns=['Val_Current', 'Val_Proposed'])
+
+# Calculate shaded band
+quantiles = [0.05, 0.25, 0.5, 0.72, 0.95]
+quantile_values = df.quantile(quantiles)
+df['Quantile_Band'] = df['Val_Current'] + 0.05 * (df['Val_Proposed'] - df['Val_Current'])
+
+# Calculate Min, Max, and specific quantiles
+min_val = df.min()
+max_val = df.max()
+quantiles = df.quantile([0.05, 0.25, 0.5, 0.72, 0.95])
+
+# Calculate shaded region width
+shade_width = abs(df['Val_Current'] - df['Val_Proposed']).quantile(0.9)
+x_min = round(df['Val_Current'].min() - 1, 0)
+x_max = round(df['Val_Current'].max() + 1, 0)
+
+# Create breakeven line
+breakeven_line = go.Scatter(
+    x=[x_min, x_max],
+    y=[x_min, x_max],
+    mode='lines',
+    line=dict(dash='dash', color='#D1C9C0'),
+    name='Breakeven Line'
+)
+
+# Create shaded region
+shaded_region = go.Scatter(
+    x=np.concatenate((df['Val_Current'], df['Val_Current'][::-1])),
+    y=np.concatenate((df['Val_Proposed'] + shade_width, (df['Val_Proposed'] - shade_width)[::-1])),
+    fill='toself',
+    fillcolor='rgba(0,100,80,0.2)',
+    line=dict(color='rgba(255,255,255,0)'),
+    hoverinfo="skip",
+    showlegend=False
+)
+
+# Create scatter plot
+scatter_plot = go.Scatter(
+    x=df['Val_Current'],
+    y=df['Val_Proposed'],
+    mode='markers',
+    marker=dict(color='blue'),
+    name='Scatter Plot'
+)
+
+# Create the figure and add all traces
+fig = go.Figure()
+fig.add_trace(breakeven_line)
+fig.add_trace(shaded_region)
+fig.add_trace(scatter_plot)
+
+# Update layout
+fig.update_layout(
+    title='Scatter Plot with Shaded Region and Breakeven Line',
+    xaxis_title='Current Value',
+    yaxis_title='Proposed Value'
+)
+
+# Display in Streamlit
+st.plotly_chart(fig)
