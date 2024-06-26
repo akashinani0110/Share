@@ -1,0 +1,26 @@
+import pandas as pd
+
+# Example DataFrame
+data = {
+    'A': [1.1, -2.5, 3.3],
+    'B': [4.7, -5.2, 6.8],
+    'C': [-7.6, 8.9, -9.1]
+}
+df = pd.DataFrame(data)
+
+# Function to color the values
+def color_negative_red_positive_green(val):
+    color = 'red' if val < 0 else 'green'
+    return f'color: {color}'
+
+# Apply the function to the DataFrame
+styled_df = df.style.applymap(color_negative_red_positive_green)
+
+# Convert the styled DataFrame to HTML
+html_table = styled_df.render()
+
+# Write the HTML to a file
+with open('styled_table.html', 'w') as file:
+    file.write(html_table)
+
+print("HTML table with conditional formatting has been saved to 'styled_table.html'")
