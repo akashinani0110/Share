@@ -1,0 +1,27 @@
+import pandas as pd
+
+# Example DataFrame
+data = {
+    'A': [1.1, -2.5, 3.3],
+    'B': [4.7, -5.2, 6.8],
+    'C': [-7.6, 8.9, -9.1]
+}
+df = pd.DataFrame(data)
+
+# Function to format the values with colored signs
+def format_with_sign(val):
+    if val > 0:
+        return f'<span style="color: green;">+{val}</span>'
+    elif val < 0:
+        return f'<span style="color: red;">{val}</span>'
+    else:
+        return str(val)
+
+# Apply the function to each element in the DataFrame
+html_table = df.to_html(escape=False, formatters={col: format_with_sign for col in df.columns})
+
+# Write the HTML to a file
+with open('styled_table.html', 'w') as file:
+    file.write(html_table)
+
+print("HTML table with conditional formatting has been saved to 'styled_table.html'")
