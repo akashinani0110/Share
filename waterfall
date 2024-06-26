@@ -1,0 +1,24 @@
+# Generate the measure values (relative or total)
+measures = []
+for i, val in enumerate(filtered_df['Value']):
+    if i == len(filtered_df) - 1:
+        measures.append('total')
+    else:
+        measures.append('relative')
+
+fig = go.Figure(go.Waterfall(
+    name="20", orientation="v",
+    measure=measures,
+    x=filtered_df['Category'],
+    textposition="outside",
+    text=[str(val) for val in filtered_df['Value']],
+    y=filtered_df['Value'],
+    connector={"line": {"color": "rgb(63, 63, 63)"}},
+))
+
+fig.update_layout(
+    title="Filtered Waterfall Chart",
+    waterfallgroupgap=0.5,
+)
+
+fig.show()
