@@ -1,0 +1,27 @@
+import json
+
+def generate_plot_from_config(config_file):
+    def create_chart_from_config(chart_config):
+        chart_type = chart_config['type']
+        data = chart_config['data']
+        kwargs = chart_config.get('kwargs', {})
+        return create_chart(chart_type, data, **kwargs)
+
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+
+    charts = []
+    for chart_config in config['charts']:
+        if isinstance(chart_config, list):
+            sub_charts = [create_chart_from_config(sub_chart_config) for sub_chart_config in chart_config]
+            charts.append(sub_charts)
+        else:
+            chart = create_chart_from_config(chart_config)
+            charts.append(chart)
+
+    is_subplot = config.get('is_subplot', False)
+    rows = config.get('rows', 1)
+    cols = config.get('cols', len(charts) if rows == 1 else 1)
+    
+    fig = create_multiple_traces(charts, is_subplot=is_subplot, rows=rows, cols=cols)
+    return fig
