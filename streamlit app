@@ -1,0 +1,94 @@
+import numpy as np
+from scipy import stats
+
+def calculate_statistics(data, operations):
+    """
+    Calculate various statistics for a given list of numbers.
+
+    Parameters:
+    data (list): A list of numerical values.
+    operations (list): A list of operations to perform. Supported operations are:
+                       'mean', 'median', 'mode', 'std', 'var', 'min', 'max'.
+
+    Returns:
+    str: A string with the results of the requested operations in the format
+         "Operation is result, ...".
+    """
+    results = {}
+    
+    if 'mean' in operations:
+        results['mean'] = np.mean(data)
+    if 'median' in operations:
+        results['median'] = np.median(data)
+    if 'mode' in operations:
+        mode = stats.mode(data)
+        results['mode'] = mode.mode[0] if mode.count[0] > 1 else None
+    if 'std' in operations:
+        results['std'] = np.std(data)
+    if 'var' in operations:
+        results['var'] = np.var(data)
+    if 'min' in operations:
+        results['min'] = np.min(data)
+    if 'max' in operations:
+        results['max'] = np.max(data)
+        
+    return ', '.join([f"{op.capitalize()} is {results[op]}" for op in operations if op in results])
+
+# Unit test cases
+import unittest
+
+class TestCalculateStatistics(unittest.TestCase):
+    
+    def test_mean(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['mean']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Mean is 3.0')
+    
+    def test_median(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['median']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Median is 3.0')
+    
+    def test_mode(self):
+        data = [1, 2, 2, 3, 4]
+        operations = ['mode']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Mode is 2')
+    
+    def test_std(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['std']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Std is 1.4142135623730951')
+    
+    def test_var(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['var']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Var is 2.0')
+    
+    def test_min(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['min']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Min is 1')
+    
+    def test_max(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['max']
+        result = calculate_statistics(data, operations)
+        self.assertEqual(result, 'Max is 5')
+    
+    def test_multiple_operations(self):
+        data = [1, 2, 3, 4, 5]
+        operations = ['mean', 'median', 'std']
+        result = calculate_statistics(data, operations)
+        expected_result = 'Mean is 3.0, Median is 3.0, Std is 1.4142135623730951'
+        self.assertEqual(result, expected_result)
+
+if __name__ == '__main__':
+    unittest.main()
+
+
