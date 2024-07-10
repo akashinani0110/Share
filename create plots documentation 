@@ -1,0 +1,289 @@
+import plotly.graph_objects as go
+import plotly.subplots as sp
+import json
+import os
+
+def create_chart(chart_type, data, **kwargs):
+    """
+    Create a Plotly chart based on the specified type and data.
+
+    Parameters:
+    chart_type (str): The type of chart to create ('line', 'scatter', 'area', 'bar', 'waterfall', 'heatmap').
+    data (dict): The data for the chart. The required keys depend on the chart type.
+    kwargs (dict): Additional keyword arguments to pass to the chart constructor.
+
+    Returns:
+    go.Figure: A Plotly figure object representing the chart.
+    """
+    chart = None
+    if chart_type == 'line':
+        chart = go.Scatter(x=data['x'], y=data['y'], mode='lines', **kwargs)
+    elif chart_type == 'scatter':
+        chart = go.Scatter(x=data['x'], y=data['y'], mode='markers', **kwargs)
+    elif chart_type == 'area':
+        chart = go.Scatter(x=data['x'], y=data['y'], fill='tozeroy', **kwargs)
+    elif chart_type == 'bar':
+        chart = go.Bar(x=data['x'], y=data['y'], **kwargs)
+    elif chart_type == 'waterfall':
+        chart = go.Waterfall(x=data['x'], y=data['y'], **kwargs)
+    elif chart_type == 'heatmap':
+        chart = go.Heatmap(z=data['z'], x=data.get('x'), y=data.get('y'), **kwargs)
+    # Add more chart types as needed
+    return chart
+
+def create_multiple_traces(charts, is_subplot=False, rows=None, cols=None):
+    """
+    Create a Plotly figure with multiple traces, optionally using subplots.
+
+    Parameters:
+    charts (list): A list of charts or lists of charts to add to the figure.
+    is_subplot (bool): Whether to arrange the charts in subplots.
+    rows (int): The number of rows in the subplot grid (if is_subplot is True).
+    cols (int): The number of columns in the subplot grid (if is_subplot is True).
+
+    Returns:
+    go.Figure: A Plotly figure object with the specified traces and layout.
+    """
+    if is_subplot:
+        fig = sp.make_subplots(rows=rows, cols=cols)
+        for i, chart_info in enumerate(charts):
+            row = i // cols + 1
+            col = i % cols + 1
+            if isinstance(chart_info, list):
+                for trace in chart_info:
+                    fig.add_trace(trace, row=row, col=col)
+            else:
+                fig.add_trace(chart_info, row=row, col=col)
+    else:
+        fig = go.Figure()
+        for chart in charts:
+            if isinstance(chart, list):
+                for trace in chart:
+                    fig.add_trace(trace)
+            else:
+                fig.add_trace(chart)
+    return fig
+
+def parse_chart_config(chart_config):
+    """
+    Parse a chart configuration and create the corresponding Plotly chart(s).
+
+    Parameters:
+    chart_config (dict or list): The configuration for a chart or a list of chart configurations.
+
+    Returns:
+    go.Figure or list: A Plotly figure object or a list of figure objects.
+    """
+    if isinstance(chart_config, list):
+        sub_charts = []
+        for sub_chart_config in chart_config:
+            chart_type = sub_chart_config['type']
+            data = sub_chart_config['data']
+            kwargs = sub_chart_config.get('kwargs', {})
+            chart = create_chart(chart_type, data, **kwargs)
+            sub_charts.append(chart)
+        return sub_charts
+    else:
+        chart_type = chart_config['type']
+        data = chart_config['data']
+        kwargs = chart_config.get('kwargs', {})
+        return create_chart(chart_type, data, **kwargs)
+
+def generate_plot_from_config(config_file):
+    """
+    Generate a Plotly plot from a configuration file.
+
+    Parameters:
+    config_file (str): The path to the configuration file in JSON format.
+
+    Returns:
+    go.Figure: A Plotly figure object generated based on the configuration.
+    """
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+
+    charts = [parse_chart_config(chart_config) for chart_config in config['charts']]
+
+    is_subplot = config.get('is_subplot', False)
+    rows = config.get('rows', 1)
+    cols = config.get('cols', len(charts) if rows == 1 else 1)
+    
+    fig = create_multiple_traces(charts, is_subplot=is_subplot, rows=rows, cols=cols)
+    return fig
+
+# Test cases
+def test_create_chart():
+    line_chart = create_chart('line', {'x': [1, 2, 3], 'y': [4, 5, 6]})
+    assert isinstance(line_chart, go.Scatter)
+    assert line_chart.mode == 'lines'
+    
+    scatter_chart = create_chart('scatter', {'x': [1, 2, 3], 'y': [6, 5, 4]})
+    assert isinstance(scatter_chart, go.Scatter)
+    assert scatter_chart.mode == 'markers'
+    
+    area_chart = create_chart('area', {'x': [1, 2, 3], 'y': [4, 5, 6]})
+    assert isinstance(area_chart, go.Scatter)
+    assert area_chart.fill == 'tozeroy'
+    
+    bar_chart = create_chart('bar', {'x': [1, 2, 3], 'y': [4, 5, 6]})
+    assert isinstance(bar_chart, go.Bar)
+    
+    waterfall_chart = create_chart('waterfall', {'x': [1, 2, 3], 'y': [4, 5, 6]})
+    assert isinstance(waterfall_chart, go.Waterfall)
+    
+    heatmap_chart = create_chart('heatmap', {'z': [[1, 2, 3], [4, 5, 6], [7, 8, 9]]})
+    assert isinstance(heatmap_chart, go.Heatmap)
+
+def test_create_multiple_traces():
+    charts = [
+        create_chart('line', {'x': [1, 2, 3], 'y': [4, 5, 6]}),
+        create_chart('scatter', {'x': [1, 2, 3], 'y': [6, 5, 4]})
+    ]
+    fig = create_multiple_traces(charts)
+    assert len(fig.data) == 2
+    assert isinstance(fig.data[0], go.Scatter)
+    assert isinstance(fig.data[1], go.Scatter)
+    
+    charts_subplot = [
+        [
+            create_chart('line', {'x': [1, 2, 3], 'y': [4, 5, 6]}),
+            create_chart('scatter', {'x': [1, 2, 3], 'y': [6, 5, 4]})
+        ],
+        create_chart('heatmap', {'z': [[1, 2, 3], [4, 5, 6], [7, 8, 9]]})
+    ]
+    fig = create_multiple_traces(charts_subplot, is_subplot=True, rows=1, cols=2)
+    assert len(fig.data) == 3
+    assert isinstance(fig.data[0], go.Scatter)
+    assert isinstance(fig.data[1], go.Scatter)
+    assert isinstance(fig.data[2], go.Heatmap)
+
+def test_parse_chart_config():
+    config_single = {
+        "type": "line",
+        "data": {"x": [1, 2, 3], "y": [4, 5, 6]},
+        "kwargs": {"name": "Line Chart"}
+    }
+    chart = parse_chart_config(config_single)
+    assert isinstance(chart, go.Scatter)
+    assert chart.name == "Line Chart"
+    
+    config_multiple = [
+        {
+            "type": "line",
+            "data": {"x": [1, 2, 3], "y": [4, 5, 6]},
+            "kwargs": {"name": "Line Chart"}
+        },
+        {
+            "type": "scatter",
+            "data": {"x": [1, 2, 3], "y": [6, 5, 4]},
+            "kwargs": {"name": "Scatter Chart"}
+        }
+    ]
+    charts = parse_chart_config(config_multiple)
+    assert isinstance(charts, list)
+    assert len(charts) == 2
+    assert isinstance(charts[0], go.Scatter)
+    assert charts[0].name == "Line Chart"
+    assert isinstance(charts[1], go.Scatter)
+    assert charts[1].name == "Scatter Chart"
+
+def test_generate_plot_from_config():
+    sample_config = {
+        "charts": [
+            [
+                {
+                    "type": "line",
+                    "data": {
+                        "x": [1, 2, 3, 4, 5],
+                        "y": [10, 11, 12, 13, 14]
+                    },
+                    "kwargs": {
+                        "name": "Line Chart 1"
+                    }
+                },
+                {
+                    "type": "scatter",
+                    "data": {
+                        "x": [1, 2, 3, 4, 5],
+                        "y": [20, 21, 22, 23, 24]
+                    },
+                    "kwargs": {
+                        "name": "Scatter Chart 1"
+                    }
+                }
+            ],
+            {
+                "type": "heatmap",
+                "data": {
+                    "z": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                    "x": ["A", "B", "C"],
+                    "y": ["X", "Y", "Z"]
+                },
+                "kwargs": {
+                    "name": "Heatmap"
+                }
+            }
+        ],
+        "is_subplot": True,
+        "rows": 1,
+        "cols": 2
+    }
+
+    # Save the sample configuration to a file
+    config_file = 'sample_config.json'
+    with open(config_file, 'w') as f:
+        json.dump(sample_config, f)
+
+    fig = generate_plot_from_config(config_file)
+    assert len(fig.data) == 3  # Ensure there are three traces in the plot
+    assert fig.layout.grid.rows == 1  # Ensure there is 1 row
+    assert fig.layout.grid.cols == 2  # Ensure there are 2 columns
+
+    os.remove(config_file)  # Clean up the file after testing
+
+def test_generate_plot_without_subplots():
+    sample_config_no_subplots = {
+        "charts": [
+            {
+                "type": "line",
+                "data": {
+                    "x": [1, 2, 3, 4, 5],
+                    "y": [10, 11, 12, 13, 14]
+                },
+                "kwargs": {
+                    "name": "Line Chart"
+                }
+            },
+            {
+                "type": "scatter",
+                "data": {
+                    "x": [1, 2, 3, 4, 5],
+                    "y": [20, 21, 22, 23, 24]
+                },
+                "kwargs": {
+                    "name": "Scatter Chart"
+                }
+            }
+        ],
+        "is_subplot": False
+    }
+
+    # Save the updated configuration to a file
+    config_file = 'sample_config_no_subplots.json'
+    with open(config_file, 'w') as f:
+        json.dump(sample_config_no_subplots, f)
+
+    fig = generate_plot_from_config(config_file)
+    assert len(fig.data) == 2  # Ensure there are two traces in the plot
+    assert not hasattr(fig.layout, 'grid')  # Ensure subplots are disabled
+
+    os.remove(config_file)  # Clean up the file after testing
+
+if __name__ == "__main__":
+    # Running the test cases
+    test_create_chart()
+    test_create_multiple_traces()
+    test_parse_chart_config()
+    test_generate_plot_from_config()
+    test_generate_plot_without_subplots()
+    print("All tests passed!")
