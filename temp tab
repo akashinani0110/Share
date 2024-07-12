@@ -1,0 +1,87 @@
+import streamlit as st
+import pandas as pd
+
+# Data
+data = {
+    "Asset Class/Factor": [
+        "U.S. Large Cap Growth", "U.S. Large Cap Value", "U.S. Small Cap Growth", 
+        "U.S. Small Cap Value", "International Developed Equity", 
+        "Emerging Markets", "U.S. Governments", "U.S. Mortgages", "U.S. Corporates"
+    ],
+    "Category": [
+        "Equity", "Equity", "Equity", 
+        "Equity", "Equity", "Equity", 
+        "Fixed Income", "Fixed Income", "Fixed Income"
+    ],
+    "Proxy": [
+        "Russell 1000 Growth TR", "Russell 1000 Value TR", "Russell 2000 Growth TR",
+        "Russell 2000 Value TR", "MSCI Daily TR Net World Ex USA USD", 
+        "MSCI Daily TR Net EM USD", "ICE BofA AAA U.S. Treasury/Agency Master", 
+        "ICE BofA Mortgage Master", "ICE BofA U.S. Corp Master"
+    ],
+    "Geometric Return Proposed": [
+        "9.4%", "10.2%", "10.5%", 
+        "10.9%", "7.6%", "7.6%", 
+        "4.0%", "4.1%", "4.9%"
+    ],
+    "Arithmetic Return Proposed": [
+        "11.1%", "11.5%", "13.4%", 
+        "12.9%", "9.3%", "10.1%", 
+        "4.1%", "4.3%", "4.9%"
+    ],
+    "Volatility Proposed": [
+        "19.5%", "17.3%", "26.2%", 
+        "21.6%", "19.2%", "24.0%", 
+        "4.9%", "5.7%", "6.6%"
+    ],
+    "Sharpe Ratio Proposed": [
+        "0.40", "0.48", "0.39", 
+        "0.45", "0.31", "0.29", 
+        "0.17", "0.18", "0.25"
+    ],
+    "Yield Proposed": [
+        "0.8%", "2.5%", "0.7%", 
+        "2.7%", "3.3%", "2.9%", 
+        "4.0%", "4.1%", "4.7%"
+    ],
+    "Turnover": [
+        "12%", "12%", "12%", 
+        "12%", "12%", "12%", 
+        "32%", "32%", "32%"
+    ]
+}
+
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Function to render table without vertical borders
+def render_table(df):
+    # Create CSS to remove vertical borders
+    css = """
+    <style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border-top: 1px solid #dddddd;
+        border-bottom: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    table tr td:not(:last-child), table tr th:not(:last-child) {
+        border-right: none;
+    }
+    </style>
+    """
+    # Convert DataFrame to HTML
+    html = df.to_html(index=False, escape=False)
+    # Render CSS and table HTML
+    st.markdown(css + html, unsafe_allow_html=True)
+
+# Display table
+st.title("Proposed (2024) Capital Market Assumptions for Merrill US")
+render_table(df)
