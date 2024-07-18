@@ -1,0 +1,35 @@
+import pandas as pd
+
+# Example DataFrame
+# Replace this with your actual DataFrame
+data = {
+    'Series1': [1, 2, 5, 7, 10, 12, 15, 18, 20, 25],
+    'Series2': [3, 6, 9, 12, 15, 18, 21, 24, 30, 35],
+    # Add more series as needed
+}
+df = pd.DataFrame(data)
+
+# Define the quantiles of interest
+quantiles = [0.05, 0.25, 0.45, 0.50, 0.55, 0.75, 0.95]
+
+# Function to calculate required statistics for a series
+def compute_statistics(series):
+    return {
+        'min': series.min(),
+        'max': series.max(),
+        'Q1': series.quantile(0.25),
+        'median': series.median(),
+        'Q3': series.quantile(0.75),
+        'last_point': series.iloc[-1],
+        **{f'quantile_{int(q*100)}': series.quantile(q) for q in quantiles}
+    }
+
+# Apply the function to each column (time series) in the DataFrame
+statistics = df.apply(compute_statistics)
+
+# Convert to DataFrame and include column names
+statistics_df = pd.DataFrame(statistics).T
+statistics_df.index.name = 'Time Series'
+
+# Print the resulting DataFrame
+print(statistics_df)
