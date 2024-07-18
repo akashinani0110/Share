@@ -1,0 +1,25 @@
+import plotly.graph_objects as go
+
+# Example statistical points
+minimum = 1
+q1 = 4
+median = 8
+q3 = 12
+maximum = 20
+
+# Create the box plot trace
+fig = go.Figure()
+fig.add_trace(go.Box(
+    y=[minimum, q1, median, q3, maximum],
+    boxmean='sd',  # Display mean and standard deviation
+    name='Box Plot with Statistical Points'
+))
+
+# Update layout for better visualization
+fig.update_layout(
+    title='Box Plot with Statistical Points',
+    yaxis_title='Value'
+)
+
+# Show the plot
+fig.show()
