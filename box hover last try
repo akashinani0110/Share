@@ -1,0 +1,99 @@
+import plotly.graph_objects as go
+import numpy as np
+
+# Sample data
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# Separate point to be marked
+separate_point = 7.5
+
+# Calculate the statistics for the box plot
+min_val = min(data)
+max_val = max(data)
+q1 = np.percentile(data, 25)
+median = np.median(data)
+q3 = np.percentile(data, 75)
+
+# Create the box plot
+fig = go.Figure()
+
+# Add the box plot
+fig.add_trace(go.Box(
+    y=data,
+    boxpoints='outliers',  # Show outliers
+    name='Box Plot',
+    marker_color='blue'
+))
+
+# Add annotations to show aggregate statistics
+fig.add_trace(go.Scatter(
+    x=[0],  # x position for annotations
+    y=[min_val],  # y position for annotations
+    mode='markers+text',
+    text=['Min: {}'.format(min_val)],
+    textposition='top right',
+    marker=dict(color='blue', size=10),
+    showlegend=False
+))
+
+fig.add_trace(go.Scatter(
+    x=[0],
+    y=[q1],
+    mode='markers+text',
+    text=['Q1: {}'.format(q1)],
+    textposition='top right',
+    marker=dict(color='blue', size=10),
+    showlegend=False
+))
+
+fig.add_trace(go.Scatter(
+    x=[0],
+    y=[median],
+    mode='markers+text',
+    text=['Median: {}'.format(median)],
+    textposition='top right',
+    marker=dict(color='blue', size=10),
+    showlegend=False
+))
+
+fig.add_trace(go.Scatter(
+    x=[0],
+    y=[q3],
+    mode='markers+text',
+    text=['Q3: {}'.format(q3)],
+    textposition='top right',
+    marker=dict(color='blue', size=10),
+    showlegend=False
+))
+
+fig.add_trace(go.Scatter(
+    x=[0],
+    y=[max_val],
+    mode='markers+text',
+    text=['Max: {}'.format(max_val)],
+    textposition='top right',
+    marker=dict(color='blue', size=10),
+    showlegend=False
+))
+
+# Add the separate point
+fig.add_trace(go.Scatter(
+    x=[0],
+    y=[separate_point],
+    mode='markers',
+    name='Separate Point',
+    marker=dict(color='red', size=10),
+    hovertemplate=(
+        '<b>Value:</b> %{y}<br>'
+        '<b>Additional Info:</b> Custom Text<extra></extra>'
+    )
+))
+
+# Update layout
+fig.update_layout(
+    title="Box Plot with Aggregate Statistics and Separate Point",
+    yaxis_title="Values"
+)
+
+# Show the plot
+fig.show()
