@@ -1,0 +1,67 @@
+import plotly.graph_objects as go
+import numpy as np
+
+# Sample data
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# Separate point to be marked
+separate_point = 7.5
+
+# Calculate the statistics for the box plot
+min_val = min(data)
+max_val = max(data)
+q1 = np.percentile(data, 25)
+median = np.median(data)
+q3 = np.percentile(data, 75)
+
+# Create the box plot
+fig = go.Figure()
+
+# Custom hover template for the box plot
+box_hovertemplate = (
+    '<b>Min:</b> {}<br>'
+    '<b>Q1:</b> {}<br>'
+    '<b>Median:</b> {}<br>'
+    '<b>Q3:</b> {}<br>'
+    '<b>Max:</b> {}<extra></extra>'
+).format(min_val, q1, median, q3, max_val)
+
+fig.add_trace(go.Box(
+    y=data,
+    boxpoints=False,  # Remove the original data points
+    name='Box Plot',
+    marker_color='blue',
+    hoverinfo='skip',  # Skip default hover info for the box plot
+))
+
+# Add an invisible scatter plot to show the custom hover template
+fig.add_trace(go.Scatter(
+    x=['Box Plot'],
+    y=[np.mean(data)],  # Position the hover near the middle
+    mode='markers',
+    marker=dict(color='rgba(0,0,0,0)'),
+    showlegend=False,
+    hovertemplate=box_hovertemplate
+))
+
+# Add the separate point
+fig.add_trace(go.Scatter(
+    x=['Box Plot'],
+    y=[separate_point],
+    mode='markers',
+    name='Separate Point',
+    marker=dict(color='red', size=10),
+    hovertemplate=(
+        '<b>Value:</b> %{y}<br>'
+        '<b>Additional Info:</b> Custom Text<extra></extra>'
+    )
+))
+
+# Update layout
+fig.update_layout(
+    title="Box Plot with Separate Point",
+    yaxis_title="Values"
+)
+
+# Show the plot
+fig.show()
