@@ -1,0 +1,106 @@
+import pandas as pd
+
+class TimeSeriesProcessor:
+    """
+    A class to process time series data from a CSV file.
+
+    Attributes:
+        file_name (str): The name of the CSV file containing the time series data.
+        data (pd.DataFrame): The time series data loaded from the CSV file.
+        time_series_columns (list): List of time series column names.
+
+    Methods:
+        check_time_series(): Checks the number of time series in the file.
+        get_data(): Retrieves the time series data.
+        filter_data(start_date=None, end_date=None): Filters the data by the given date range.
+    """
+
+    def __init__(self, file_name):
+        """
+        Initializes the TimeSeriesProcessor with a CSV file.
+
+        Args:
+            file_name (str): The name of the CSV file to read.
+        """
+        self.file_name = file_name
+        self.data = pd.read_csv(file_name, parse_dates=True, index_col=0)
+        self.time_series_columns = self.data.columns.tolist()
+
+    def check_time_series(self):
+        """
+        Checks the number of time series in the file.
+
+        Returns:
+            int: The number of time series columns.
+
+        Raises:
+            ValueError: If the file contains more than two time series.
+        """
+        num_series = len(self.time_series_columns)
+        if num_series not in [1, 2]:
+            raise ValueError("The file should contain exactly one or two time series.")
+        return num_series
+
+    def get_data(self):
+        """
+        Retrieves the time series data.
+
+        Returns:
+            pd.Series or tuple of pd.Series: The time series data.
+        """
+        num_series = self.check_time_series()
+        if num_series == 1:
+            return self.data[self.time_series_columns[0]]
+        elif num_series == 2:
+            return self.data[self.time_series_columns[0]], self.data[self.time_series_columns[1]]
+
+    def filter_data(self, start_date=None, end_date=None):
+        """
+        Filters the data by the given date range.
+
+        Args:
+            start_date (str or pd.Timestamp, optional): The start date for filtering.
+            end_date (str or pd.Timestamp, optional): The end date for filtering.
+
+        Returns:
+            pd.DataFrame: The filtered data.
+        """
+        if start_date is None:
+            start_date = self.data.index.min()
+        if end_date is None:
+            end_date = self.data.index.max()
+        
+        filtered_data = self.data.loc[start_date:end_date]
+        return filtered_data
+
+# Test cases
+def test_time_series_processor():
+    # Create a sample CSV file for testing
+    data = {
+        'date': ['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05'],
+        'value1': [1, 2, 3, 4, 5],
+        'value2': [5, 4, 3, 2, 1]
+    }
+    df = pd.DataFrame(data)
+    df.to_csv('test_timeseries.csv', index=False)
+
+    # Initialize the processor
+    processor = TimeSeriesProcessor('test_timeseries.csv')
+
+    # Test check_time_series method
+    assert processor.check_time_series() == 2
+
+    # Test get_data method
+    data1, data2 = processor.get_data()
+    assert data1.equals(df.set_index('date')['value1'])
+    assert data2.equals(df.set_index('date')['value2'])
+
+    # Test filter_data method
+    filtered_data = processor.filter_data('2023-01-02', '2023-01-04')
+    expected_data = df.set_index('date').loc['2023-01-02':'2023-01-04']
+    assert filtered_data.equals(expected_data)
+
+    print("All tests passed.")
+
+# Run test cases
+test_time_series_processor()
