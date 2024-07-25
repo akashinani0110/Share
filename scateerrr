@@ -1,0 +1,109 @@
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+
+# Assuming scatterDat is a pandas DataFrame with columns 'xval', 'yval', 'col', 'lab'
+# Replace this with the actual DataFrame loading if needed
+# scatterDat = pd.read_csv('path_to_your_csv_file.csv')
+
+scatterDat['Variable'] = "abcd"
+
+# Find shaded region that captures 90% of the deviation datapoints from 45 degree line
+abs_dev = np.abs(scatterDat['yval'] - scatterDat['xval'])
+dev = scatterDat['yval'] - scatterDat['xval']  # This is not absolute deviation
+perc = np.quantile(abs_dev, 0.90)
+stats_min = round(np.min(dev), 2)
+stats_max = round(np.max(dev), 2)
+stats_med = round(np.quantile(dev, 0.50), 2)
+stats_5th = round(np.quantile(dev, 0.05), 2)
+stats_25th = round(np.quantile(dev, 0.25), 2)
+stats_75th = round(np.quantile(dev, 0.75), 2)
+stats_95th = round(np.quantile(dev, 0.95), 2)
+captionText = (
+    f"\n shaded band consists of 90% of changes from the break-even line.\nDistribution of changes: "
+    f"\nMin: {stats_min}% | 5th Percentile: {stats_5th}% | 25th: {stats_25th}% | Med: {stats_med}% "
+    f"| 75th: {stats_75th}% | 95th: {stats_95th}% | Max: {stats_max}%"
+)
+
+# Calculate min and max of xval rounded to 0 digits
+min_val = round(scatterDat['xval'].min(), 0)
+max_val = round(scatterDat['xval'].max(), 0)
+
+# Create shadedRegion DataFrame
+shadedRegion = pd.DataFrame({'x': np.arange(min_val, max_val + 1)})
+shadedRegion['yval_min'] = shadedRegion['x'] - perc
+shadedRegion['yval_max'] = shadedRegion['x'] + perc
+shadedRegion['Variable'] = "abc"
+
+# Define scale functions for the axes
+def XscaleFUN(x):
+    # Assuming xAxisDat is a dictionary with 'unit' key
+    # Replace xAxisDat['unit'] with the actual unit
+    xAxisDat = {'unit': ''}
+    return f"{x:.0f}{xAxisDat['unit']}"
+
+def YscaleFUN(x):
+    # Assuming yAxisDat is a dictionary with 'unit' key
+    # Replace yAxisDat['unit'] with the actual unit
+    yAxisDat = {'unit': ''}
+    return f"{x:.0f}{yAxisDat['unit']}"
+
+# Define the trend line
+trendLine = go.Scatter(
+    x=[min_val, max_val],
+    y=[min_val, max_val],
+    mode="lines",
+    line=dict(color="blue", dash="dash"),
+    name="Trend Line"
+)
+
+# Define the shaded region
+shadedArea = go.Scatter(
+    x=np.concatenate([shadedRegion['x'], shadedRegion['x'][::-1]]),
+    y=np.concatenate([shadedRegion['yval_min'], shadedRegion['yval_max'][::-1]]),
+    fill='toself',
+    fillcolor='gray',
+    line=dict(color='gray'),
+    opacity=0.5,
+    name='Shaded Region'
+)
+
+# Scatter plot
+scatterPlot = go.Scatter(
+    x=scatterDat['xval'],
+    y=scatterDat['yval'],
+    mode='markers',
+    marker=dict(color=scatterDat['col']),
+    text=scatterDat['lab'],
+    name='Data Points'
+)
+
+# Create the figure
+fig = go.Figure()
+
+# Assuming plotTrendLine and shaded are predefined variables
+plotTrendLine = True  # Set to True or False as needed
+shaded = True         # Set to True or False as needed
+title = "Your Plot Title"  # Replace with your plot title
+
+if plotTrendLine and shaded:
+    fig.add_trace(trendLine)
+    fig.add_trace(shadedArea)
+    fig.add_trace(scatterPlot)
+    fig.update_layout(
+        title=title,
+        annotations=[dict(
+            xref='paper', yref='paper', x=0, y=-0.15,
+            text=captionText,
+            showarrow=False,
+            font=dict(size=12, color="#808080")
+        )]
+    )
+else:
+    fig.add_trace(trendLine)
+    fig.add_trace(scatterPlot)
+    fig.update_layout(title=title)
+
+# Show the plot
+fig.show()
