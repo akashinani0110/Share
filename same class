@@ -1,0 +1,187 @@
+from anytree import NodeMixin, PostOrderIter
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import pystore
+
+class PystoreTest:
+
+    def __init__(self, short_name=None):
+        """
+        Initializes the TimeSeries Processor with a CSV file.
+
+        Args:
+            short_name (str): Short name for pystore item to fetch timeseries
+        """
+        self.short_name = short_name
+        self.pystore_connection = None
+        self.pystore_name = None
+        self.time_series = None
+        self.initialize_pystore()
+        self.map_pystore_name()
+        self.add_computation()
+
+    def initialize_pystore(self):
+        if "pystore" not in st.session_state.keys():
+            # Connect to the PyStore database
+            pystore.set_path(st.session_state["pystore_connection"]["store_path"])
+            store = pystore.store(st.session_state["pystore_connection"]["store_name"])
+            # Open the collection and store in session state
+            st.session_state["pystore"] = store.collection(st.session_state["pystore_connection"]["collection"])
+        self.pystore_connection = st.session_state["pystore"]
+
+    def map_pystore_name(self):
+        pystore_mapping = st.session_state["pystore_mapping"]['pystore_name']
+        pystore_name = pystore_mapping.get(self.short_name, "Not_Found")
+        if pystore_name == "Not_Found":
+            raise ValueError("Pystore name not found")
+        else:
+            self.pystore_name = pystore_name
+
+    def fetch_data(self, item=None):
+        try:
+            py_item = self.pystore_name if item is None else item
+            data = self.pystore_connection.item(py_item).to_pandas()
+            data = pd.Series(data[0], index=pd.to_datetime(data[1]))
+            self.time_series = data
+            self.manipulate_time_series()
+            return self.time_series
+        except Exception as e:
+            raise ValueError("An error occurred:", e)
+
+    def add_computation(self):
+        if self.short_name in ["Term Spread"]:
+            YTM_10Y = self.fetch_data(item="USTRSY10Y_YTM")
+            YTM_3M = self.fetch_data(item="USTRSY3M_YTM")
+            self.time_series = YTM_10Y - YTM_3M
+        elif self.short_name in ["Inflation (Annual)"]:
+            self.time_series = self.calculate_rolling_window_average_returns(self.fetch_data(), 1)
+        elif self.short_name in [
+            'Global_Govt', 'Global_HY_EM', 'US_Trsy_3_10', 'IG_Taxable_1_5',
+            'IG_Taxable_5_15', 'Real_Assets', 'AI_Composite', 'Real_Estate'
+        ]:
+            self.time_series = self.get_composite_return()
+        else:
+            self.time_series = self.fetch_data()
+
+    def manipulate_time_series(self):
+        time_series = self.time_series
+        if self.pystore_name in ["USCPI_X"]:
+            time_series = time_series.pct_change()
+        elif self.pystore_name in ["USTRSY10Y_YTM", "USTRSY3M_YTM"]:
+            time_series = time_series / 100
+        elif self.pystore_name in ["USPE_TR"]:
+            time_series = self.unsmooth_ts(time_series)
+        self.time_series = time_series
+
+    def calculate_rolling_window_average_returns(self, ts, window):
+        return ts.rolling(window=window).mean()
+
+    def unsmooth_ts(self, ts: pd.Series) -> pd.Series:
+        index = ts.index
+        ts = np.array(ts)
+        ts = np.log(1 + ts)
+        Y = ts[1:]
+        X = ts[:-1]
+        X = sm.add_constant(X)
+        beta = sm.OLS(Y, X).fit().params[1]
+        ts_us = (1 / (1 - beta)) * ts[1:] - (beta / (1 - beta)) * ts[:-1]
+        ts_us = np.insert(ts_us, 0, ts[0])
+        ts_us = np.exp(ts_us) - 1
+        return pd.Series(ts_us, index=index)
+
+    def get_composite_return(self):
+        nodes = self.build_composite_tree(self.short_name)
+        rets = self.calculate_composite_returns(nodes)
+        if len(rets) == 1:
+            return rets[0]
+
+        for i in range(len(rets) - 1):
+            rets[i] = rets[i].where(
+                (rets[i].index >= nodes[i + 1]['backfill_start_date']) & 
+                (rets[i].index < nodes[i + 1]['backfill_end_date'])
+            ).dropna()
+
+        rets[-1] = rets[-1].where(rets[-1].index >= nodes[-1]['backfill_end_date']).dropna()
+
+        return pd.concat(rets).sort_index()
+
+    def build_composite_tree(self, comp):
+        pystore_mapping = st.session_state["pystore_mapping"]
+        nodes = []
+        queue = [comp]
+
+        while queue:
+            current_comp = queue.pop(0)
+            node_data = {'name': current_comp + " composite"}
+
+            try:
+                node_data['constituents'] = pystore_mapping['composite'][current_comp].split(',')
+                if pystore_mapping['composite_weight'][current_comp] == 'market_value':
+                    node_data['composite_index'] = pystore_mapping['composite_market_value_index'][current_comp].split(',')
+                else:
+                    node_data['composite_weight'] = [float(w) for w in pystore_mapping['composite_weight'][current_comp].split(',')]
+
+                if pystore_mapping['backfill'][current_comp] is not None:
+                    node_data['backfill'] = True
+                    node_data['backfill_start_date'] = pd.to_datetime("-".join(pystore_mapping['backfill_start_date'][current_comp].split('\\')))
+                    node_data['backfill_end_date'] = pd.to_datetime("-".join(pystore_mapping['backfill_end_date'][current_comp].split('\\')))
+                    backfill_item = pystore_mapping['backfill'][current_comp]
+                    queue.append(backfill_item)
+            except KeyError:
+                node_data['constituents'] = []
+
+            nodes.append(node_data)
+        
+        return nodes
+
+    def calculate_composite_returns(self, nodes):
+        rets = []
+
+        for n in nodes:
+            if 'composite_index' not in n:
+                rets.append(
+                    self.composite_with_fixed_weight(
+                        [self.fetch_data(item=const) for const in n['constituents']], 
+                        n['composite_weight']
+                    )
+                )
+            else:
+                rets.append(
+                    self.composite_w_mv_weight(
+                        [self.fetch_data(item=const) for const in n['constituents']],
+                        [self.fetch_data(item=const) for const in n['composite_index']]
+                    )
+                )
+
+        return rets
+
+    def composite_with_fixed_weight(self, df_list, comp_wgt_list):
+        for i in range(len(df_list) - 1):
+            df_list[i], df_list[i + 1] = self.align_time_series(df_list[i], df_list[i + 1])
+        
+        df_comp = pd.concat(df_list, axis=1, join='inner')
+        
+        try:
+            assert sum(comp_wgt_list) == 100
+        except AssertionError as e:
+            raise AssertionError("Composite weight doesn't sum to 100. Additional info: %s" % e)
+        
+        return df_comp.mul(comp_wgt_list, axis=1).sum(axis=1) / 100
+
+    def composite_w_mv_weight(self, df_list, comp_mv_df):
+        df_comp = pd.concat(df_list, axis=1, join='inner').dropna()
+        df_comp_mv = pd.concat(comp_mv_df, axis=1, join='inner').dropna().shift(1)
+        
+        idx = df_comp.index.intersection(df_comp_mv.index)
+        df_comp = df_comp.loc[idx]
+        df_comp_mv = df_comp_mv.loc[idx]
+        
+        df_comp_mv.columns = df_comp.columns
+        return (df_comp * df_comp_mv).sum(axis=1).div(df_comp_mv.sum(axis=1))
+
+    def align_time_series(self, ts1, ts2):
+        common_idx = ts1.index.intersection(ts2.index)
+        ts1 = ts1.loc[common_idx]
+        ts2 = ts2.loc[common_idx]
+        return ts1, ts2
