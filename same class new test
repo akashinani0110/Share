@@ -1,0 +1,103 @@
+import unittest
+from unittest.mock import patch, MagicMock
+import pandas as pd
+from your_module import PystoreTest  # Replace with the actual module name
+
+class TestPystoreTest(unittest.TestCase):
+
+    def setUp(self):
+        """
+        Set up the test environment with mock data and methods.
+        """
+        self.pystore_test = PystoreTest()
+        
+        # Create mock data
+        self.df1 = pd.Series([1, 2, 3, 4], index=pd.date_range(start='2023-01-01', periods=4))
+        self.df2 = pd.Series([2, 4, 6, 8], index=pd.date_range(start='2023-01-01', periods=4))
+        self.df_mv1 = pd.Series([10, 20, 30, 40], index=pd.date_range(start='2023-01-01', periods=4))
+        self.df_mv2 = pd.Series([15, 25, 35, 45], index=pd.date_range(start='2023-01-01', periods=4))
+        
+        # Mock methods
+        self.pystore_test.fetch_data = MagicMock()
+        self.pystore_test.fetch_data.side_effect = lambda item: self.df1 if item == "item1" else self.df2
+        
+        # Mock session state
+        self.mock_session_state = {
+            "pystore_mapping": {
+                "composite": {
+                    "comp1": "item1,item2"
+                },
+                "composite_weight": {
+                    "comp1": "50,50"
+                },
+                "composite_market_value_index": {
+                    "comp1": "index1,index2"
+                },
+                "backfill": {
+                    "comp1": None
+                },
+                "backfill_start_date": {
+                    "comp1": ""
+                },
+                "backfill_end_date": {
+                    "comp1": ""
+                },
+                "pystore_name": {
+                    "item1": "Item 1",
+                    "item2": "Item 2"
+                }
+            }
+        }
+        
+    @patch('streamlit.session_state', new_callable=dict)
+    def test_get_composite_return(self, mock_session_state):
+        """
+        Test the get_composite_return function.
+        """
+        mock_session_state.update(self.mock_session_state)
+        
+        # Mock method returns
+        self.pystore_test.calculate_composite_returns = MagicMock(return_value=[self.df1, self.df2])
+        
+        # Expected result
+        expected_result = pd.concat([self.df1, self.df2]).sort_index()
+        
+        result = self.pystore_test.get_composite_return()
+        
+        pd.testing.assert_series_equal(result, expected_result, check_dtype=False)
+
+    @patch('streamlit.session_state', new_callable=dict)
+    def test_build_composite_tree(self, mock_session_state):
+        """
+        Test the build_composite_tree function.
+        """
+        mock_session_state.update(self.mock_session_state)
+        
+        expected_tree = [{
+            'name': 'comp1 composite',
+            'constituents': ['item1', 'item2'],
+            'composite_weight': [50.0, 50.0]
+        }]
+        
+        result = self.pystore_test.build_composite_tree('comp1')
+        
+        self.assertEqual(result, expected_tree)
+    
+    def test_calculate_composite_returns(self):
+        """
+        Test the calculate_composite_returns function.
+        """
+        nodes = [{
+            'constituents': ['item1', 'item2'],
+            'composite_weight': [50.0, 50.0]
+        }]
+        
+        # Expected result
+        expected_result = self.pystore_test.composite_with_fixed_weight([self.df1, self.df2], [50, 50])
+        
+        result = self.pystore_test.calculate_composite_returns(nodes)[0]
+        
+        pd.testing.assert_series_equal(result, expected_result, check_dtype=False)
+
+if __name__ == '__main__':
+    unittest.main()
