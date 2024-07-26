@@ -1,0 +1,317 @@
+import unittest
+
+class TestCompositeFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.df1 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=pd.date_range('2023-01-01', periods=3))
+        self.df2 = pd.DataFrame({'A': [3, 2, 1], 'B': [6, 5, 4]}, index=pd.date_range('2023-01-02', periods=3))
+        self.df3 = pd.DataFrame({'A': [1, 1, 1], 'B': [2, 2, 2]}, index=pd.date_range('2023-01-01', periods=3))
+
+        self.df_mv1 = pd.DataFrame({'A': [100, 200, 300], 'B': [400, 500, 600]}, index=pd.date_range('2023-01-01', periods=3))
+        self.df_mv2 = pd.DataFrame({'A': [300, 200, 100], 'B': [600, 500, 400]}, index=pd.date_range('2023-01-02', periods=3))
+        
+    def test_composite_with_fixed_weight(self):
+        result = composite_with_fixed_weight([self.df1, self.df2], [50, 50])
+        expected = pd.Series([2.5, 4.0], index=pd.date_range('2023-01-02', periods=2))
+        pd.testing.assert_series_equal(result, expected)
+
+        with self.assertRaises(AssertionError):
+            composite_with_fixed_weight([self.df1, self.df2], [30, 30])
+
+    def test_composite_w_mv_weight(self):
+        result = composite_w_mv_weight([self.df1, self.df2], [self.df_mv1, self.df_mv2])
+        expected = pd.Series([3.5, 3.5], index=pd.date_range('2023-01-02', periods=2))
+        pd.testing.assert_series_equal(result, expected)
+
+    def test_unsmooth_ts(self):
+        ts = pd.Series([0.01, 0.02, 0.015, 0.03, 0.025], index=pd.date_range('2023-01-01', periods=5))
+        result = unsmooth_ts(ts)
+        expected = pd.Series([0.01, 0.029397, 0.009253, 0.042935, 0.018782], index=pd.date_range('2023-01-01', periods=5))
+        pd.testing.assert_series_equal(result, expected, check_less_precise=3)
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+
+
+
+import unittest
+from unittest.mock import patch, MagicMock
+import pandas as pd
+
+# Mock functions and classes
+def calculate_rolling_window_average_returns(data, window):
+    return data.rolling(window=window).mean()
+
+class CustomComposite:
+    def __init__(self, short_name, pystore_mapping, pystore_connection):
+        pass
+    
+    def get_composite_return(self):
+        return pd.Series([0.01, 0.02, 0.03], index=pd.date_range('2023-01-01', periods=3))
+
+def unsmooth_ts(ts):
+    return ts  # Simplified for testing purposes
+
+# Sample session state mock
+st = MagicMock()
+st.session_state = {
+    "pystore_connection": {
+        "store_path": "/mock/path",
+        "store_name": "mock_store",
+        "collection": "mock_collection"
+    },
+    "pystore_mapping": {
+        'pystore_name': {
+            "short_name_example": "mock_item"
+        }
+    }
+}
+
+# PystoreTest class as defined previously
+
+class TestPystoreTest(unittest.TestCase):
+
+    @patch('pystore.connect', return_value=MagicMock())
+    @patch('pystore.store', return_value=MagicMock())
+    def setUp(self, mock_pystore_store, mock_pystore_connect):
+        self.pystore_test = PystoreTest(short_name="short_name_example")
+        self.pystore_test.pystore_connection = MagicMock()
+        self.pystore_test.pystore_name = "mock_item"
+
+    def test_initialize_pystore(self):
+        self.pystore_test.initialize_pystore()
+        self.assertIsNotNone(st.session_state["pystore"])
+    
+    def test_map_pystore_name(self):
+        self.pystore_test.map_pystore_name()
+        self.assertEqual(self.pystore_test.pystore_name, "mock_item")
+    
+    @patch('pystore.item', return_value=MagicMock())
+    def test_fetch_data(self, mock_pystore_item):
+        mock_pystore_item().to_pandas.return_value = pd.DataFrame({
+            0: [0.01, 0.02, 0.03],
+            1: ['2023-01-01', '2023-01-02', '2023-01-03']
+        })
+        self.pystore_test.fetch_data()
+        expected_series = pd.Series([0.01, 0.02, 0.03], index=pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03']))
+        pd.testing.assert_series_equal(self.pystore_test.time_series, expected_series)
+    
+    def test_add_computation(self):
+        with patch.object(self.pystore_test, 'fetch_data', return_value=pd.Series([0.01, 0.02, 0.03])) as mock_fetch_data:
+            self.pystore_test.short_name = "Term Spread"
+            self.pystore_test.add_computation()
+            mock_fetch_data.assert_any_call(item="USTRSY10Y YTM")
+            mock_fetch_data.assert_any_call(item="USTRSY3M YTM")
+
+            self.pystore_test.short_name = "Inflation (Annual)"
+            self.pystore_test.add_computation()
+            self.assertIsNotNone(self.pystore_test.time_series)
+    
+    def test_manipulate_time_series(self):
+        self.pystore_test.time_series = pd.Series([0.01, 0.02, 0.03], index=pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03']))
+        self.pystore_test.pystore_name = "USCPI_X"
+        self.pystore_test.manipulate_time_series()
+        expected_series = self.pystore_test.time_series.pct_change()
+        pd.testing.assert_series_equal(self.pystore_test.time_series, expected_series)
+        
+        self.pystore_test.pystore_name = "USTRSY10Y YTM"
+        self.pystore_test.manipulate_time_series()
+        expected_series = self.pystore_test.time_series / 100
+        pd.testing.assert_series_equal(self.pystore_test.time_series, expected_series)
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+
+
+_-----------
+
+
+from anytree import NodeMixin, PostOrderIter
+import pandas as pd
+
+class CustomComposite(PystoreTest, NodeMixin):
+
+    def __init__(self, comp: str = None, 
+                 pystore_mapping: dict = None, 
+                 parent=None, 
+                 children=None, 
+                 composite_index: list = None, 
+                 composite_weight: list = None, 
+                 backfill_end_date=None, 
+                 backfill_start_date=None, 
+                 backfill=False, 
+                 pystore_connection=None):
+        """
+        Initializes the CustomComposite class.
+
+        Args:
+            comp (str): The composite name.
+            pystore_mapping (dict): Mapping for pystore items.
+            parent: Parent node.
+            children: Child nodes.
+            composite_index (list): Composite index.
+            composite_weight (list): Composite weight.
+            backfill_end_date: End date for backfill.
+            backfill_start_date: Start date for backfill.
+            backfill (bool): Indicates if backfill is needed.
+            pystore_connection: Connection to pystore.
+        """
+        self.composite_index = composite_index
+        self.composite_weight = composite_weight
+        self.backfill = backfill
+        self.backfill_end_date = backfill_end_date
+        self.backfill_start_date = backfill_start_date
+        self.pystore_connection = pystore_connection
+        
+        if pystore_mapping is not None:
+            try:
+                self.name = comp + " composite"
+                self.constituents = pystore_mapping['composite'][comp].split(',')
+                
+                if pystore_mapping['composite_weight'][comp] == 'market_value':
+                    self.composite_index = pystore_mapping['composite_market_value_index'][comp].split(',')
+                else:
+                    self.composite_weight = [float(w) for w in pystore_mapping['composite_weight'][comp].split(',')]
+                
+                if pystore_mapping['backfill'][comp] is not None:
+                    self.backfill = True
+                    backfill_item = pystore_mapping['backfill'][comp]
+                    if backfill_item not in pystore_mapping['pystore_name']:
+                        self.children = [Node(pystore_mapping['backfill'][comp])]
+                    else:
+                        self.children = [CustomComposite(pystore_mapping['backfill'][comp], 
+                                                         pystore_mapping=pystore_mapping, 
+                                                         pystore_connection=pystore_connection)]
+                    
+                    self.backfill_start_date = pd.to_datetime(
+                        "-".join(pystore_mapping['backfill_start_date'][comp].split('\\'))
+                    )
+                    self.backfill_end_date = pd.to_datetime(
+                        "-".join(pystore_mapping['backfill_end_date'][comp].split('\\'))
+                    )
+            except ValueError:
+                if comp is None:
+                    print("Composite name has to be non-empty.")
+                elif comp not in pystore_mapping['pystore_name']:
+                    print("Composite is not mapped in pystore.")
+        super().__init__(short_name=comp)  # Initialize PystoreTest with the composite name
+
+    def get_composite_return(self):
+        """
+        Calculates and returns the composite returns.
+        """
+        nodes = [node for node in PostOrderIter(self)]
+        rets = []
+
+        for n in nodes:
+            if n.name.split(" ")[-1] == "composite":
+                if not n.composite_index:
+                    rets.append(
+                        composite_with_fixed_weight(
+                            [self.fetch_data(item=const) for const in n.constituents], 
+                            n.composite_weight
+                        )
+                    )
+                else:
+                    rets.append(
+                        composite_w_mv_weight(
+                            [self.fetch_data(item=const) for const in n.constituents],
+                            [self.fetch_data(item=const) for const in n.composite_index]
+                        )
+                    )
+            else:
+                rets.append(self.fetch_data(item=n.name))
+
+        if len(rets) == 1:
+            return rets[0]
+
+        for i in range(len(rets) - 1):
+            rets[i] = rets[i].where(
+                (rets[i].index >= nodes[i + 1].backfill_start_date) & 
+                (rets[i].index < nodes[i + 1].backfill_end_date)
+            ).dropna()
+
+        rets[-1] = rets[-1].where(rets[-1].index >= nodes[-1].backfill_end_date).dropna()
+
+        return pd.concat(rets).sort_index()
+
+# Functions used in the class, for completeness
+def composite_with_fixed_weight(df_list, comp_wgt_list):
+    # Aligning time series
+    for i in range(len(df_list) - 1):
+        df_list[i], df_list[i + 1] = align_time_series(df_list[i], df_list[i + 1])
+    
+    df_comp = pd.concat(df_list, axis=1, join='inner')
+    
+    try:
+        assert sum(comp_wgt_list) == 100
+    except AssertionError as e:
+        raise AssertionError("Composite weight doesn't sum to 100. Additional info: %s" % e)
+    
+    return df_comp.mul(comp_wgt_list, axis=1).sum(axis=1) / 100
+
+def composite_w_mv_weight(df_list, comp_mv_df):
+    df_comp = pd.concat(df_list, axis=1, join='inner').dropna()
+    df_comp_mv = pd.concat(comp_mv_df, axis=1, join='inner').dropna().shift(1)
+    
+    idx = df_comp.index.intersection(df_comp_mv.index)
+    df_comp = df_comp.loc[idx]
+    df_comp_mv = df_comp_mv.loc[idx]
+    
+    df_comp_mv.columns = df_comp.columns
+    return (df_comp * df_comp_mv).sum(axis=1).div(df_comp_mv.sum(axis-1))
+
+def align_time_series(ts1, ts2):
+    common_idx = ts1.index.intersection(ts2.index)
+    return ts1.loc[common_idx], ts2.loc[common_idx]
+
+# Now we have a structured CustomComposite class that integrates with PystoreTest
+
+
+
+---------+
+
+import unittest
+
+class TestCustomComposite(unittest.TestCase):
+    
+    def setUp(self):
+        # Mock data and mappings for testing
+        self.pystore_mapping = {
+            'composite': {
+                'ExampleComposite': 'Const1,Const2'
+            },
+            'composite_weight': {
+                'ExampleComposite': '50,50'
+            },
+            'backfill': {
+                'ExampleComposite': None
+            },
+            'pystore_name': {
+                'Const1': 'Const1',
+                'Const2': 'Const2'
+            },
+            'backfill_start_date': {
+                'ExampleComposite': '2023\\01\\01'
+            },
+            'backfill_end_date': {
+                'ExampleComposite': '2023\\12\\31'
+            }
+        }
+
+    def test_composite_return(self):
+        comp = CustomComposite(comp='ExampleComposite', pystore_mapping=self.pystore_mapping)
+        result = comp.get_composite_return()
+        
+        # Assuming some expected result based on mock data
+        expected_index = pd.date_range('2023-01-01', periods=3)
+        expected_series = pd.Series([0.01, 0.02, 0.03], index=expected_index)
+        
+        pd.testing.assert_series_equal(result, expected_series)
+
+if __name__ == '__main__':
+    unittest.main()
