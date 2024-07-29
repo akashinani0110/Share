@@ -1,0 +1,165 @@
+import pytest
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+from datetime import datetime
+
+# Mocking streamlit's session state and pystore
+class MockSessionState:
+    def __init__(self):
+        self.session_state = {
+            "pystore_mapping": {
+                "pystore_name": {"comp1": "comp1_data"},
+                "composite": {"comp1": "const1,const2"},
+                "composite_weight": {"comp1": "50,50"},
+                "composite_market_value_index": {"comp1": "index1,index2"},
+                "backfill": {"comp1": None},
+                "backfill_start_date": {"comp1": "2022\\01\\01"},
+                "backfill_end_date": {"comp1": "2022\\12\\31"},
+            },
+            "pystore_connection": {
+                "store_path": "./pystore",
+                "store_name": "test_store",
+                "collection": "test_collection"
+            },
+            "pystore": MockPyStoreConnection()
+        }
+
+class MockPyStoreConnection:
+    def item(self, name):
+        data = {
+            'const1': (['2022-01-01', '2022-01-02'], [1.0, 1.1]),
+            'const2': (['2022-01-01', '2022-01-02'], [2.0, 2.2]),
+            'index1': (['2022-01-01', '2022-01-02'], [1.0, 1.0]),
+            'index2': (['2022-01-01', '2022-01-02'], [1.0, 1.0]),
+        }
+        return MockItem(data[name])
+
+class MockItem:
+    def __init__(self, data):
+        self.data = data
+
+    def to_pandas(self):
+        return pd.DataFrame({
+            0: self.data[1],
+            1: self.data[0]
+        })
+
+# Replace st.session_state with mock session state
+st.session_state = MockSessionState().session_state
+
+# Test class
+class TestPystoreTest:
+
+    @pytest.fixture(scope="class")
+    def pystore_test(self):
+        return PystoreTest(short_name="comp1")
+
+    def test_initialize_pystore(self, pystore_test):
+        assert pystore_test.pystore_connection is not None
+
+    def test_map_pystore_name(self, pystore_test):
+        assert pystore_test.pystore_name == "comp1_data"
+
+    def test_fetch_data(self, pystore_test):
+        result = pystore_test.fetch_data(item="const1")
+        expected_result = pd.Series([1.0, 1.1], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_add_computation(self, pystore_test):
+        pystore_test.short_name = "Term Spread"
+        pystore_test.add_computation()
+        expected_result = pd.Series([0.01], index=pd.to_datetime(['2022-01-01']))
+        pd.testing.assert_series_equal(pystore_test.time_series.iloc[1:], expected_result)
+
+    def test_manipulate_time_series(self, pystore_test):
+        pystore_test.time_series = pd.Series([1.0, 2.0], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        pystore_test.pystore_name = "USCPI_X"
+        pystore_test.manipulate_time_series()
+        expected_result = pd.Series([np.nan, 1.0], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        pd.testing.assert_series_equal(pystore_test.time_series, expected_result)
+
+    def test_calculate_rolling_window_average_returns(self, pystore_test):
+        ts = pd.Series([1.0, 2.0, 3.0], index=pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']))
+        result = pystore_test.calculate_rolling_window_average_returns(ts, 2)
+        expected_result = pd.Series([np.nan, 1.5, 2.5], index=pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']))
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_unsmooth_ts(self, pystore_test):
+        ts = pd.Series([0.01, 0.02, 0.03], index=pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']))
+        result = pystore_test.unsmooth_ts(ts)
+        assert isinstance(result, pd.Series)
+
+    def test_get_composite_return(self, pystore_test):
+        # Mocking fetch_data method
+        def mock_fetch_data(item):
+            data = {
+                'const1': pd.Series([1.0, 1.1], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+                'const2': pd.Series([2.0, 2.2], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+                'index1': pd.Series([1.0, 1.0], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+                'index2': pd.Series([1.0, 1.0], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+            }
+            return data[item]
+        
+        pystore_test.fetch_data = mock_fetch_data
+        result = pystore_test.get_composite_return()
+        expected_result = pd.Series([1.5, 1.65], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_build_composite_tree(self, pystore_test):
+        expected_nodes = [
+            {
+                'name': 'comp1 composite',
+                'constituents': ['const1', 'const2'],
+                'composite_weight': [50.0, 50.0],
+                'backfill': False
+            }
+        ]
+        result = pystore_test.build_composite_tree('comp1')
+        assert result == expected_nodes
+
+    def test_calculate_composite_returns(self, pystore_test):
+        nodes = [
+            {
+                'name': 'comp1 composite',
+                'constituents': ['const1', 'const2'],
+                'composite_weight': [50.0, 50.0],
+                'backfill': False
+            }
+        ]
+        def mock_fetch_data(item):
+            data = {
+                'const1': pd.Series([1.0, 1.1], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+                'const2': pd.Series([2.0, 2.2], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+            }
+            return data[item]
+        
+        pystore_test.fetch_data = mock_fetch_data
+        result = pystore_test.calculate_composite_returns(nodes)
+        expected_result = [
+            pd.Series([1.5, 1.65], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        ]
+        for res, exp in zip(result, expected_result):
+            pd.testing.assert_series_equal(res, exp)
+
+    def test_composite_with_fixed_weight(self, pystore_test):
+        df_list = [
+            pd.Series([1.0, 1.1], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+            pd.Series([2.0, 2.2], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        ]
+        comp_wgt_list = [50.0, 50.0]
+        result = pystore_test.composite_with_fixed_weight(df_list, comp_wgt_list)
+        expected_result = pd.Series([1.5, 1.65], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_composite_w_mv_weight(self, pystore_test):
+        df_list = [
+            pd.Series([1.0, 1.1], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+            pd.Series([2.0, 2.2], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        ]
+        comp_mv_df = [
+            pd.Series([1.0, 1.0], index=pd.to_datetime(['2022-01-01', '2022-01-02'])),
+            pd.Series([1.0, 1.0], index=pd.to_datetime(['2022-01-01', '2022-01-02']))
+        ]
+        result = pystore_test.composite_w_mv_weight(df_list, comp_mv_df)
+        expected_result = pd.Series([1.5, 1.65], index=pd
