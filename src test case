@@ -1,0 +1,94 @@
+import unittest
+import json
+import os
+import tempfile
+import streamlit as st
+from page_setup import PageSetup  # Replace with the correct import path
+
+class TestPageSetup(unittest.TestCase):
+
+    def setUp(self):
+        # Create temporary files for the config and session data
+        self.config_file = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json')
+        self.session_data_file = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json')
+
+        # Sample configurations for testing
+        self.sample_config = {
+            "session_state": {
+                "active": True,
+                "variables": {
+                    "var1": "value1",
+                    "var2": "value2"
+                }
+            },
+            "page_organization": {
+                "test_page": {
+                    "sidebar": {
+                        "filter1": {
+                            "type": "selectbox",
+                            "options": ["opt1", "opt2"],
+                            "label": "Filter 1",
+                            "default_index": 0
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.sample_session_data_config = {
+            "session_var1": "session_value1",
+            "session_var2": "session_value2"
+        }
+
+        # Write sample configurations to temporary files
+        json.dump(self.sample_config, self.config_file)
+        json.dump(self.sample_session_data_config, self.session_data_file)
+
+        self.config_file.close()
+        self.session_data_file.close()
+
+        # Patch the file paths in the PageSetup class
+        self.patcher_config = patch.object(PageSetup, 'load_config', return_value=self.sample_config)
+        self.patcher_session_data = patch.object(PageSetup, 'load_session_data_config', return_value=self.sample_session_data_config)
+        self.patcher_config.start()
+        self.patcher_session_data.start()
+
+    def tearDown(self):
+        # Remove temporary files
+        os.remove(self.config_file.name)
+        os.remove(self.session_data_file.name)
+        self.patcher_config.stop()
+        self.patcher_session_data.stop()
+
+    def test_load_config(self):
+        ps = PageSetup(filename="test_page")
+        self.assertEqual(ps.config, self.sample_config)
+        
+    def test_load_session_data_config(self):
+        ps = PageSetup(filename="test_page")
+        self.assertEqual(ps.session_data_config, self.sample_session_data_config)
+        
+    def test_set_state(self):
+        ps = PageSetup(filename="test_page")
+        ps.set_state()
+        self.assertIn("var1", st.session_state)
+        self.assertEqual(st.session_state["var1"], "value1")
+        self.assertIn("var2", st.session_state)
+        self.assertEqual(st.session_state["var2"], "value2")
+        
+    def test_set_page_state(self):
+        ps = PageSetup(filename="test_page")
+        ps.set_page_state()
+        self.assertIn("chart_config", st.session_state)
+        self.assertIn("statistic_header", st.session_state)
+        self.assertIn("session_data", st.session_state)
+        
+    def test_set_default_sidebar(self):
+        ps = PageSetup(filename="test_page")
+        sidebar = ps.set_default_sidebar()
+        self.assertIn("test_page", sidebar)
+        self.assertIn("filter1", sidebar["test_page"])
+        self.assertEqual(sidebar["test_page"]["filter1"], "opt1")
+        
+if __name__ == "__main__":
+    unittest.main()
