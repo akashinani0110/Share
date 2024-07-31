@@ -1,0 +1,222 @@
+import unittest
+from datetime import datetime, timedelta
+import pandas as pd
+from unittest.mock import MagicMock
+
+# Assuming the functions are imported from the module
+# from your_module import filter_time_series, get_metadata_info, get_data
+
+class TestTimeSeriesFunctions(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Mocking the st.session_state
+        cls.mock_session_state = {
+            "metadata_description": {
+                "Asset classes": {
+                    "metadata": "asset_metadata",
+                    "search_column": "Name",
+                    "return_columns": ["Short Name", "Proxy Index"]
+                },
+                "Factors": {
+                    "metadata": "factor_metadata",
+                    "search_column": "Name",
+                    "return_columns": ["Short Name", "Proxy Index"]
+                }
+            },
+            "asset_metadata": pd.DataFrame({
+                "Name": ["Test Asset"],
+                "Short Name": ["TA"],
+                "Proxy Index": ["PA"]
+            }),
+            "factor_metadata": pd.DataFrame({
+                "Name": ["Test Factor"],
+                "Short Name": ["TF"],
+                "Proxy Index": ["PF"]
+            }),
+            "pystore_data": {
+                "TA": pd.Series([1, 2, 3, 4], index=pd.date_range(start='2020-01-01', periods=4, freq='D')),
+            },
+            "factors_data": {
+                "TF": pd.Series([2, 3, 4, 5], index=pd.date_range(start='2020-01-01', periods=4, freq='D'))
+            },
+            "cma_end_date": "2020-01-04"
+        }
+
+    def setUp(self):
+        # Mock st.session_state before each test
+        global st
+        st = MagicMock()
+        st.session_state = self.mock_session_state
+
+    def test_filter_time_series(self):
+        data = pd.Series([1, 2, 3, 4, 5], index=pd.date_range(start='2020-01-01', periods=5, freq='D'))
+
+        # Test filtering with start and end date
+        filtered_data = filter_time_series(data, start_date='2020-01-02', end_date='2020-01-04')
+        self.assertTrue((filtered_data.index == pd.to_datetime(['2020-01-02', '2020-01-03', '2020-01-04'])).all())
+
+        # Test filtering with start date only
+        filtered_data = filter_time_series(data, start_date='2020-01-03')
+        self.assertTrue((filtered_data.index == pd.to_datetime(['2020-01-03', '2020-01-04', '2020-01-05'])).all())
+
+        # Test filtering with end date only
+        filtered_data = filter_time_series(data, end_date='2020-01-03')
+        self.assertTrue((filtered_data.index == pd.to_datetime(['2020-01-01', '2020-01-02', '2020-01-03'])).all())
+
+        # Test filtering with time period
+        filtered_data = filter_time_series(data, time_period=2)
+        self.assertTrue((filtered_data.index == pd.to_datetime(['2020-01-03', '2020-01-04', '2020-01-05'])).all())
+
+    def test_get_metadata_info(self):
+        # Test metadata retrieval for asset classes
+        result = get_metadata_info("Asset classes", "Test Asset")
+        self.assertEqual(result, ["TA", "PA"])
+
+        # Test metadata retrieval for factors
+        result = get_metadata_info("Factors", "Test Factor")
+        self.assertEqual(result, ["TF", "PF"])
+
+    def test_get_data(self):
+        time_series_input = [("Asset classes", "Test Asset"), ("Factors", "Test Factor")]
+
+        # Test data retrieval without relative_to
+        result = get_data(time_series_input, relative_to=False)
+        self.assertTrue((result["time_series"].index == pd.to_datetime(['2020-01-01', '2020-01-02', '2020-01-03', '2020-01-04'])).all())
+        self.assertEqual(result["proxy_index"], "PA")
+
+        # Test data retrieval with relative_to
+        result = get_data(time_series_input, relative_to=True)
+        expected_diff = pd.Series([-1, -1, -1, -1], index=pd.date_range(start='2020-01-01', periods=4, freq='D'))
+        pd.testing.assert_series_equal(result["time_series"], expected_diff)
+        self.assertEqual(result["proxy_index"], "PA")
+
+if __name__ == '__main__':
+    unittest.main()
+
+import pandas as pd
+import datetime
+
+def filter_time_series(data, start_date=None, end_date=None, time_period=None, end_date_option="End of last month"):
+    """
+    Filters the data by the given date range.
+    
+    Args:
+        data (pd.Series): Time series that need to be filtered.
+        start_date (str, optional): Start date in the format 'YYYY-MM-DD'. Default is None.
+        end_date (str, optional): End date in the format 'YYYY-MM-DD'. Default is None.
+        time_period (int, optional): Time period in days. Default is None.
+        end_date_option (str, optional): Option to set end date. Can be "CMA end date" or "End of last month". Default is "End of last month".
+    
+    Returns:
+        pd.DataFrame: The filtered data.
+    """
+    try:
+        if start_date is None:
+            start_date = data.index.min()
+        else:
+            start_date = pd.to_datetime(start_date)
+        
+        if end_date is None:
+            if "CMA" in end_date_option:
+                end_date = pd.to_datetime(st.session_state["cma_end_date"])
+            else:
+                end_date = data.index.max()
+        else:
+            end_date = pd.to_datetime(end_date)
+            if end_date > data.index.max():
+                end_date = data.index.max()
+        
+        if time_period is not None:
+            start_date = end_date - datetime.timedelta(days=time_period)
+        
+        filtered_data = data[start_date:end_date]
+        return filtered_data
+    
+    except Exception as e:
+        raise ValueError(f"Error occurred while filtering the time series: {e}")
+
+def get_metadata_info(category, name):
+    """
+    Retrieves metadata information.
+    
+    Args:
+        category (str): Category of the metadata.
+        name (str): Name to search in the metadata.
+    
+    Returns:
+        list: Metadata information.
+    """
+    metadata_description = st.session_state["metadata_description"].get(category)
+    metadata = pd.DataFrame(st.session_state[metadata_description.get("metadata")])
+    
+    search_column = metadata_description.get("search_column")
+    return_columns = metadata_description.get("return_columns")
+    
+    filtered_df = metadata[metadata[search_column].isin([name])]
+    result_df = filtered_df[return_columns].values.flatten().tolist()
+    
+    return [result_df[0], result_df[1]]  # Adjust indices based on actual columns needed
+
+def get_data(time_series_input, relative_to=False):
+    """
+    Retrieves the time series data.
+    
+    Args:
+        time_series_input (tuple): Tuple containing short name and type of time series.
+        relative_to (bool, optional): Whether to calculate relative difference. Default is False.
+    
+    Returns:
+        dict: A dictionary containing the time series data and proxy index.
+    """
+    proxy_index = dict()
+    time_series = dict()
+    
+    for category, name in time_series_input:
+        info = get_metadata_info(category, name)
+        short_name, proxy_index[name] = info[0], info[1]
+        
+        if category in ["Asset classes", "Other Predictors", "pystore"]:
+            try:
+                data = st.session_state["pystore_data"].get(short_name)
+            except Exception as e:
+                raise ValueError(f"An error occurred: {e}")
+        elif category in ["Factor Predictors", "Factors"]:
+            data_sheet = "factors_data" if category == "Factors" else "factor_predictor_data"
+            data = pd.Series(st.session_state[data_sheet].get(short_name)).dropna()
+            data.index = pd.to_datetime(data.index)
+        else:
+            raise ValueError("Invalid category type")
+        
+        time_series[name] = data
+    
+    if relative_to:
+        if len(time_series_input) != 2:
+            raise ValueError("Exactly 2 time series are required to calculate relative difference")
+        
+        input1, input2 = time_series_input[0][1], time_series_input[1][1]
+        aligned_data = align_time_series(time_series[input1], time_series[input2])
+        result_series = aligned_data[0] - aligned_data[1]
+        result_proxy = proxy_index[input1]
+    else:
+        result_series = time_series[time_series_input[0][1]]
+        result_proxy = proxy_index[time_series_input[0][1]]
+    
+    return {
+        "time_series": result_series,
+        "proxy_index": result_proxy
+    }
+
+def align_time_series(series1, series2):
+    """
+    Aligns two time series for comparison.
+    
+    Args:
+        series1 (pd.Series): First time series.
+        series2 (pd.Series): Second time series.
+    
+    Returns:
+        tuple: Aligned time series.
+    """
+    aligned_series = series1.align(series2, join='inner')
+    return aligned_series
