@@ -1,0 +1,21 @@
+# test_app.py
+import unittest
+from unittest.mock import MagicMock, patch
+import app  # This is your Streamlit app
+
+class TestStreamlitApp(unittest.TestCase):
+    @patch('app.st.session_state', new_callable=MagicMock)
+    @patch('app.st.button', new_callable=MagicMock)
+    def test_increment_button(self, mock_button, mock_session_state):
+        # Mocking the session_state and button
+        mock_button.return_value = True  # Simulate button click
+        mock_session_state.counter = 0   # Initial counter value
+
+        # Run the main function of the app
+        app.main()
+
+        # Check if the counter is incremented
+        self.assertEqual(mock_session_state.counter, 1)
+
+if __name__ == '__main__':
+    unittest.main()
