@@ -1,0 +1,55 @@
+def generate_sql_query(select_columns=None, conditions=None):
+    """
+    Generates a full SQL SELECT query, optionally with a WHERE clause based on the given conditions.
+    
+    Parameters:
+    select_columns (list or str, optional): The columns to select in the query. 
+                                             It can be a list of column names, '*' to select all columns, or None to default to '*'.
+    conditions (list of tuples, optional): A list where each tuple contains (column, operator, value) for the WHERE clause.
+    
+    Returns:
+    str: The generated SQL SELECT query.
+    """
+    # Helper function to handle column names
+    def format_column(column):
+        return f'"{column}"' if ' ' in column else column
+
+    # Handle the SELECT clause
+    if not select_columns:
+        select_clause = "*"
+    elif isinstance(select_columns, list):
+        select_clause = ", ".join(format_column(col) for col in select_columns)
+    else:
+        select_clause = format_column(select_columns)
+
+    # Handle the WHERE clause
+    where_clause = ""
+    if conditions:
+        clauses = []
+        for column, operator, value in conditions:
+            column = format_column(column)  # Format the column name
+            if isinstance(value, str):
+                clauses.append(f"{column} {operator} '{value}'")
+            elif value is None:
+                clauses.append(f"{column} IS NULL")
+            else:
+                clauses.append(f"{column} {operator} {value}")
+        
+        where_clause = " AND ".join(clauses)
+        where_clause = f" WHERE {where_clause}" if where_clause else ""
+
+    # Construct the full query
+    query = f"SELECT {select_clause} FROM table_name{where_clause}"
+    
+    return query
+
+# Example usage
+select_columns = ["first name", "age", "city"]
+conditions = [
+    ("first name", "=", "John"),
+    ("age", ">", 30),
+    ("city", "IS", None)
+]
+
+query = generate_sql_query(select_columns, conditions)
+print(query)
