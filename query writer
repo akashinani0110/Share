@@ -1,0 +1,101 @@
+import unittest
+
+def generate_sql_query(select_columns=None, conditions=None):
+    """
+    Generates a full SQL SELECT query, optionally with a WHERE clause based on the given conditions.
+    
+    Parameters:
+    select_columns (list or str, optional): The columns to select in the query. 
+                                             It can be a list of column names, '*' to select all columns, or None to default to '*'.
+    conditions (list of tuples, optional): A list where each tuple contains (column, operator, value) for the WHERE clause.
+    
+    Returns:
+    str: The generated SQL SELECT query.
+    """
+    # Handle the SELECT clause
+    if not select_columns:
+        select_clause = "*"
+    elif isinstance(select_columns, list):
+        select_clause = ", ".join(select_columns)
+    else:
+        select_clause = select_columns
+
+    # Handle the WHERE clause
+    where_clause = ""
+    if conditions:
+        clauses = []
+        for column, operator, value in conditions:
+            if isinstance(value, str):
+                clauses.append(f"{column} {operator} '{value}'")
+            elif value is None:
+                clauses.append(f"{column} IS NULL")
+            else:
+                clauses.append(f"{column} {operator} {value}")
+        
+        where_clause = " AND ".join(clauses)
+        where_clause = f" WHERE {where_clause}" if where_clause else ""
+
+    # Construct the full query
+    query = f"SELECT {select_clause} FROM table_name{where_clause}"
+    
+    return query
+
+
+# Unit test class
+class TestGenerateSQLQuery(unittest.TestCase):
+
+    def test_select_all_columns_no_conditions(self):
+        query = generate_sql_query()
+        expected_query = "SELECT * FROM table_name"
+        self.assertEqual(query, expected_query)
+
+    def test_select_specific_columns_no_conditions(self):
+        query = generate_sql_query(select_columns=["name", "age", "city"])
+        expected_query = "SELECT name, age, city FROM table_name"
+        self.assertEqual(query, expected_query)
+
+    def test_select_all_columns_with_conditions(self):
+        conditions = [
+            ("name", "=", "John"),
+            ("age", ">", 30),
+            ("city", "IS", None)
+        ]
+        query = generate_sql_query(conditions=conditions)
+        expected_query = "SELECT * FROM table_name WHERE name = 'John' AND age > 30 AND city IS NULL"
+        self.assertEqual(query, expected_query)
+
+    def test_select_specific_columns_with_conditions(self):
+        select_columns = ["name", "age", "city"]
+        conditions = [
+            ("name", "=", "John"),
+            ("age", ">", 30),
+            ("city", "IS", None)
+        ]
+        query = generate_sql_query(select_columns=select_columns, conditions=conditions)
+        expected_query = "SELECT name, age, city FROM table_name WHERE name = 'John' AND age > 30 AND city IS NULL"
+        self.assertEqual(query, expected_query)
+
+    def test_select_all_columns_with_single_condition(self):
+        query = generate_sql_query(conditions=[("age", ">", 25)])
+        expected_query = "SELECT * FROM table_name WHERE age > 25"
+        self.assertEqual(query, expected_query)
+
+    def test_select_specific_column_with_no_conditions(self):
+        query = generate_sql_query(select_columns="name")
+        expected_query = "SELECT name FROM table_name"
+        self.assertEqual(query, expected_query)
+
+    def test_empty_conditions(self):
+        query = generate_sql_query(select_columns=["name", "age"], conditions=[])
+        expected_query = "SELECT name, age FROM table_name"
+        self.assertEqual(query, expected_query)
+
+    def test_none_conditions(self):
+        query = generate_sql_query(select_columns=["name", "age"], conditions=None)
+        expected_query = "SELECT name, age FROM table_name"
+        self.assertEqual(query, expected_query)
+
+
+# Run the tests
+if __name__ == "__main__":
+    unittest.main()
