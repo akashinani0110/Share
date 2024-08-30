@@ -1,0 +1,39 @@
+library(arrow)
+
+read_arrow_file_with_timeout <- function(file_path, timeout = 2, max_retries = 5) {
+  retry_count <- 0
+  
+  while (retry_count < max_retries) {
+    start_time <- Sys.time()
+    
+    # Attempt to read the file
+    result <- tryCatch(
+      {
+        table <- read_parquet(file_path)
+        TRUE  # Indicate success
+      },
+      error = function(e) {
+        FALSE  # Indicate failure
+      }
+    )
+    
+    end_time <- Sys.time()
+    duration <- as.numeric(difftime(end_time, start_time, units = "secs"))
+    
+    if (result && duration <= timeout) {
+      return(table)  # Return the successfully read table
+    }
+    
+    retry_count <- retry_count + 1
+    message(sprintf("Retry %d: Reading file took %.2f seconds", retry_count, duration))
+    
+    # If max retries reached, stop
+    if (retry_count == max_retries) {
+      stop("Failed to read the file within the timeout after maximum retries")
+    }
+  }
+}
+
+# Example usage
+file_path <- "your_file.parquet"
+table <- read_arrow_file_with_timeout(file_path)
