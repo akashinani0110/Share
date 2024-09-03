@@ -1,0 +1,26 @@
+html_content = ""
+
+for chart_name, parts in charts_data.items():
+    html_content += f"<div class='header'>{parts['header']}</div>\n"
+    html_content += f"<div class='chart'>{parts['chart']}</div>\n"
+    html_content += f"<div class='footer'>{parts['footer']}</div>\n"
+
+html_template = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; }}
+        .chart {{ margin: 20px 0; }}
+        .header, .footer {{ text-align: center; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    {html_content}
+</body>
+</html>
+"""
+
+with open("report.html", "w") as file:
+    file.write(html_template)
