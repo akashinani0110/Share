@@ -1,0 +1,108 @@
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+from io import StringIO
+
+# Function to generate an HTML report
+def generate_html_report(header, subheader, plots_html, footer):
+    html_content = f"""
+    <html>
+    <head>
+        <title>Report</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }}
+            h1 {{
+                color: #333;
+            }}
+            h2 {{
+                color: #666;
+            }}
+            .plot {{
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }}
+            footer {{
+                margin-top: 40px;
+                font-size: 12px;
+                color: #aaa;
+                text-align: center;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>{header}</h1>
+        <h2>{subheader}</h2>
+        {plots_html}
+        <footer>
+            <p>{footer}</p>
+        </footer>
+    </body>
+    </html>
+    """
+    return html_content
+
+# Function to convert Plotly figure to HTML
+def plotly_fig_to_html(fig):
+    return fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+# Streamlit app layout
+st.title("HTML Report Generator")
+
+# Input fields for header, subheader, and footer
+header = st.text_input("Header", "This is the main header")
+subheader = st.text_input("Subheader", "This is the subheader")
+footer = st.text_input("Footer", "This is the footer")
+
+uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+
+if uploaded_file is not None:
+    # Load the uploaded file into a DataFrame
+    df = pd.read_csv(uploaded_file)
+
+    # Display the DataFrame in the app
+    st.write("Preview of the uploaded data:")
+    st.dataframe(df)
+
+    # Generate multiple Plotly plots using plotly.graph_objects
+    fig1 = go.Figure(data=[go.Scatter(x=df[df.columns[0]], y=df[df.columns[1]], mode='lines', name='Plot 1')])
+    fig1.update_layout(title="Line Plot 1")
+
+    fig2 = go.Figure(data=[go.Bar(x=df[df.columns[0]], y=df[df.columns[2]], name='Plot 2')])
+    fig2.update_layout(title="Bar Plot 2")
+
+    fig3 = go.Figure(data=[go.Scatter(x=df[df.columns[0]], y=df[df.columns[3]], mode='markers', name='Plot 3')])
+    fig3.update_layout(title="Scatter Plot 3")
+
+    # Display the plots in the Streamlit app
+    st.plotly_chart(fig1)
+    st.plotly_chart(fig2)
+    st.plotly_chart(fig3)
+
+    # Convert Plotly figures to HTML
+    plot_html_1 = plotly_fig_to_html(fig1)
+    plot_html_2 = plotly_fig_to_html(fig2)
+    plot_html_3 = plotly_fig_to_html(fig3)
+
+    # Combine all plots HTML into one string
+    plots_html = f"""
+    <div class="plot">{plot_html_1}</div>
+    <div class="plot">{plot_html_2}</div>
+    <div class="plot">{plot_html_3}</div>
+    """
+
+    # Generate the HTML report
+    html_report = generate_html_report(header, subheader, plots_html, footer)
+
+    # Display the HTML report in the Streamlit app
+    st.markdown(html_report, unsafe_allow_html=True)
+
+    # Provide a download button for the HTML report
+    st.download_button(
+        label="Download HTML report",
+        data=StringIO(html_report).getvalue(),
+        file_name="report.html",
+        mime="text/html"
+    )
