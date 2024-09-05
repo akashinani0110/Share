@@ -1,0 +1,141 @@
+import pystore
+import pandas as pd
+
+def copy_or_store_data(data, source_store_name=None, source_collection_name=None, target_store_name=None, target_collection_name=None):
+    """
+    Copies data from one PyStore collection to another OR stores a DataFrame's columns in a PyStore collection.
+    
+    Args:
+        data: Can be a DataFrame or a list representing items to copy from a PyStore collection.
+        source_store_name (str): The name of the source PyStore (if copying items).
+        source_collection_name (str): The name of the collection in the source PyStore (if copying items).
+        target_store_name (str): The name of the target PyStore.
+        target_collection_name (str): The name of the collection in the target PyStore.
+    
+    Raises:
+        ValueError: If input types are invalid.
+        Exception: For general PyStore errors.
+    """
+    
+    try:
+        if isinstance(data, pd.DataFrame):
+            if not target_store_name or not target_collection_name:
+                raise ValueError("Target store and collection names must be provided for DataFrame storage.")
+            
+            # Open the target store and collection
+            target_store = pystore.store(target_store_name)
+            target_collection = target_store.collection(target_collection_name)
+            
+            # Iterate over each column in the DataFrame and write to PyStore
+            for column_name in data.columns:
+                column_data = data[column_name]
+                metadata = {"column": column_name, "data_type": str(column_data.dtype)}
+                
+                # Write the column data to the target collection
+                target_collection.write(column_name, column_data, metadata=metadata)
+            
+            print(f"Stored {len(data.columns)} columns from DataFrame into {target_collection_name} in store {target_store_name}.")
+        
+        elif isinstance(data, list):
+            if not source_store_name or not source_collection_name:
+                raise ValueError("Source store and collection names must be provided for PyStore copying.")
+            if not target_store_name or not target_collection_name:
+                raise ValueError("Target store and collection names must be provided for PyStore copying.")
+            
+            # Open the source and target stores
+            source_store = pystore.store(source_store_name)
+            source_collection = source_store.collection(source_collection_name)
+            target_store = pystore.store(target_store_name)
+            target_collection = target_store.collection(target_collection_name)
+            
+            # Retrieve all items from the source collection
+            items = source_collection.items()
+            
+            # Copy each item to the target collection
+            for item_name, item_data in items.items():
+                target_collection.write(item_name, item_data.data, item_data.metadata)
+            
+            print(f"Copied {len(items)} items from {source_collection_name} to {target_collection_name} in store {target_store_name}.")
+        
+        else:
+            raise ValueError("Unsupported data type. Input should be either a pandas DataFrame or a list for PyStore copying.")
+    
+    except ValueError as ve:
+        print(f"ValueError: {ve}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+# Example usage:
+# df = pd.DataFrame({...})
+# copy_or_store_data(df, target_store_name='target_store', target_collection_name='target_collection')
+
+# Example usage for list copying from one PyStore to another:
+# copy_or_store_data([], source_store_name='source_store', source_collection_name='source_collection', target_store_name='target_store', target_collection_name='target_collection')
+
+
+
+
+†*******"""""*"*****
+
+
+import unittest
+from unittest.mock import patch, MagicMock
+import pandas as pd
+
+class TestCopyOrStoreData(unittest.TestCase):
+    
+    @patch('pystore.store')
+    def test_dataframe_to_pystore(self, mock_store):
+        # Mock PyStore store and collection
+        mock_collection = MagicMock()
+        mock_store.return_value.collection.return_value = mock_collection
+        
+        # Sample DataFrame
+        df = pd.DataFrame({
+            'col1': [1, 2, 3],
+            'col2': [4, 5, 6]
+        })
+        
+        # Call the function with a DataFrame
+        copy_or_store_data(df, target_store_name='mock_target_store', target_collection_name='mock_target_collection')
+        
+        # Check if the collection.write was called twice (once per column)
+        self.assertEqual(mock_collection.write.call_count, len(df.columns))
+    
+    @patch('pystore.store')
+    def test_copy_from_pystore(self, mock_store):
+        # Mock PyStore source and target stores
+        mock_source_collection = MagicMock()
+        mock_source_collection.items.return_value = {
+            'item1': MagicMock(data=[1, 2, 3], metadata={'meta': 'data1'}),
+            'item2': MagicMock(data=[4, 5, 6], metadata={'meta': 'data2'})
+        }
+        
+        mock_store.return_value.collection.side_effect = [mock_source_collection, MagicMock()]
+        
+        # Call the function to copy items
+        copy_or_store_data([], source_store_name='mock_source_store', source_collection_name='mock_source_collection', 
+                           target_store_name='mock_target_store', target_collection_name='mock_target_collection')
+        
+        # Check if the collection.write was called twice (once per item)
+        self.assertEqual(mock_store.return_value.collection.return_value.write.call_count, 2)
+    
+    def test_invalid_input(self):
+        # Test for invalid input
+        with self.assertRaises(ValueError):
+            copy_or_store_data(12345)  # Passing an invalid data type
+
+    def test_missing_store_name(self):
+        # Test for missing target store name when storing a DataFrame
+        df = pd.DataFrame({'col1': [1, 2, 3]})
+        
+        with self.assertRaises(ValueError):
+            copy_or_store_data(df, target_collection_name='mock_collection')
+
+    def test_missing_source_store_name(self):
+        # Test for missing source store name when copying from one PyStore to another
+        with self.assertRaises(ValueError):
+            copy_or_store_data([], source_collection_name='mock_source_collection', target_store_name='mock_target_store', target_collection_name='mock_target_collection')
+
+if __name__ == '__main__':
+    unittest.main()
