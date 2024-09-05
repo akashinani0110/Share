@@ -1,0 +1,23 @@
+import pandas as pd
+
+# Example DataFrame with a mix of strings and lists
+data = {'column_name': ['abc', ['def', 'ghi'], 'jkl', ['mno', 'pqr'], 'abc']}
+df = pd.DataFrame(data)
+
+# Function to handle both strings and lists
+def extract_values(item):
+    if isinstance(item, list):  # If the item is a list, return as is
+        return item
+    elif isinstance(item, str):  # If the item is a string, split by whitespace
+        return [item]
+    else:
+        return []  # In case of unexpected types
+
+# Apply the function to each row to extract values
+all_values = df['column_name'].apply(extract_values)
+
+# Flatten the list of lists and get unique values
+unique_values = pd.Series([item for sublist in all_values for item in sublist]).unique()
+
+# Display unique values
+print(unique_values)
