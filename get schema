@@ -1,0 +1,36 @@
+import sqlite3
+
+# Connect to the SQLite database
+db_path = 'your_database.db'  # Replace with your database file path
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+# Step 1: Get all the tables in the database
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+tables = cursor.fetchall()
+
+# Loop through each table
+for table_name in tables:
+    table_name = table_name[0]  # Extract the table name from the tuple
+
+    # Step 2: Get the column names for the current table
+    cursor.execute(f"PRAGMA table_info({table_name});")
+    columns_info = cursor.fetchall()
+    column_names = [column[1] for column in columns_info]  # Get column names
+    
+    # Step 3: Get the number of rows in the current table
+    cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+    num_rows = cursor.fetchone()[0]
+    
+    # Step 4: Get the number of columns in the current table
+    num_columns = len(column_names)
+    
+    # Print the table details
+    print(f"Table: {table_name}")
+    print(f"Number of rows: {num_rows}")
+    print(f"Number of columns: {num_columns}")
+    print(f"Column names: {', '.join(column_names)}")
+    print('-' * 40)
+
+# Close the connection
+conn.close()
