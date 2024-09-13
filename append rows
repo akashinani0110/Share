@@ -1,0 +1,34 @@
+import pandas as pd
+
+def append_to_csv(new_data: pd.DataFrame, csv_file: str):
+    """
+    Appends a new DataFrame to an existing CSV file, handling column mismatches, missing columns, and column order.
+    
+    Parameters:
+    new_data (pd.DataFrame): The new data to append.
+    csv_file (str): The path to the existing CSV file.
+    """
+    
+    try:
+        # Step 1: Load the existing CSV file
+        existing_df = pd.read_csv(csv_file)
+        
+        # Step 2: Add missing columns to new_data (fill with NaN)
+        for col in existing_df.columns:
+            if col not in new_data.columns:
+                new_data[col] = pd.NA
+        
+        # Step 3: Reorder the new_data columns to match the existing CSV file
+        new_data = new_data[existing_df.columns]
+        
+        # Step 4: Append the new data to the existing CSV
+        new_data.to_csv(csv_file, mode='a', index=False, header=False)
+        print(f"Data successfully appended to {csv_file}.")
+    
+    except FileNotFoundError:
+        # If the CSV doesn't exist, create a new one with the new data
+        new_data.to_csv(csv_file, mode='w', index=False)
+        print(f"{csv_file} not found. A new file has been created.")
+        
+    except Exception as e:
+        print(f"An error occurred: {e}")
