@@ -1,0 +1,51 @@
+import pandas as pd
+
+# Function to handle both strings and lists
+def extract_values(item):
+    """
+    Extracts values from a given item, which can be a string or a list.
+    
+    Parameters:
+    item (str or list): The item from which to extract values. If a string is provided,
+                        it is split by commas. If it's a list, it is returned as is.
+    
+    Returns:
+    list: A list of values extracted from the item.
+    """
+    if isinstance(item, list):
+        # If the item is a list, return as is
+        return item
+    elif isinstance(item, str):
+        # If the item is a string, split by commas and strip any extra whitespace
+        return [x.strip() for x in item.split(",")]
+    else:
+        # In case of unexpected types, return an empty list
+        return []
+
+def get_unique_pystore_item(file_path):
+    """
+    Reads a given Excel file, extracts unique values from specified columns, 
+    and returns the unique set of values after applying transformations.
+    
+    Parameters:
+    file_path (str): The path to the Excel file containing the data.
+    
+    Returns:
+    list: A list of unique values extracted from the 'pystore_name' and 'composite' columns.
+    """
+    # Read the Excel file into a DataFrame
+    df = pd.read_excel(file_path)
+
+    # Specify the columns to extract values from
+    use_columns = ["pystore_name", "composite"]
+
+    # Apply the extract_values function to each cell in the selected columns
+    all_values = df[use_columns].applymap(extract_values)
+
+    # Flatten the list of lists and get unique values
+    unique_values = pd.Series([item for sublist in all_values.values.flatten() for item in sublist]).unique()
+
+    # Convert the list to a set and return the unique values
+    all_pystore_unique_values = list(set(unique_values) - set(df['asset_classes'].tolist()))
+
+    return all_pystore_unique_values
