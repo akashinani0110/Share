@@ -1,0 +1,57 @@
+import os
+import pandas as pd
+
+def verify_column_in_files(folder_path: str, column_name: str):
+    """
+    This function checks all CSV and Excel files in a specified folder 
+    to verify if a specific column name exists in each file.
+
+    Parameters:
+    folder_path (str): The path to the folder containing the files.
+    column_name (str): The column name to verify in each file.
+
+    Returns:
+    tuple: A tuple containing two lists:
+        - existing_column_files (list): List of files where the column exists.
+        - missing_column_files (list): List of files where the column is missing.
+
+    Exceptions:
+    - The function will skip files that cannot be read due to errors and print an error message.
+    """
+    
+    # List to store the results
+    missing_column_files = []
+    existing_column_files = []
+
+    # Loop through all files in the folder
+    for file_name in os.listdir(folder_path):
+        # Check if the file is a CSV or Excel file
+        if file_name.endswith('.csv') or file_name.endswith('.xlsx'):
+            file_path = os.path.join(folder_path, file_name)
+            
+            # Try to read the file based on its extension
+            try:
+                if file_name.endswith('.csv'):
+                    df = pd.read_csv(file_path)
+                elif file_name.endswith('.xlsx'):
+                    df = pd.read_excel(file_path)
+                
+                # Check if the column exists in the file
+                if column_name in df.columns:
+                    existing_column_files.append(file_name)
+                else:
+                    missing_column_files.append(file_name)
+            except Exception as e:
+                print(f"Error reading {file_name}: {e}")
+    
+    return existing_column_files, missing_column_files
+
+
+# Example usage:
+folder = '/path/to/your/folder'  # Replace with your folder path
+column_to_check = 'YourColumnName'  # Replace with the column you are looking for
+
+files_with_column, files_without_column = verify_column_in_files(folder, column_to_check)
+
+print("Files with the column present:", files_with_column)
+print("Files missing the column:", files_without_column)
