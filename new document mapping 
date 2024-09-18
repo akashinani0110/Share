@@ -1,0 +1,118 @@
+Process Document: Copying Time Series Data from Source PyStore to Target PyStore
+This document outlines the process for reading a PyStore mapping file, handling various data types, finding unique PyStore elements, and copying the corresponding time series data from a source PyStore to a target PyStore.
+
+
+
+Step-by-Step Process
+1. Reading the PyStore Mapping File
+The first step is to read the PyStore mapping file, which may be in formats like CSV, Excel, or JSON. Each column in this file contains metadata or time series identifiers. The goal is to iterate over all the columns and extract the PyStore elements for further processing.
+
+Input: Mapping file (CSV, Excel, JSON) containing time series metadata.
+Tool: Python libraries such as pandas are typically used to read the file.
+
+
+
+2. Handling Different Data Types (Strings & Arrays of Strings)
+Columns in the mapping file may contain different types of values, including:
+
+String: A single time series identifier, such as time_series_1.
+Array of Strings: Multiple time series identifiers in the same cell, such as ['time_series_1', 'time_series_2'].
+In this step, we ensure that both single strings and arrays of strings are properly processed.
+
+If the value is a string: The identifier is directly extracted and stored.
+If the value is an array of strings: The array is parsed, and each time series identifier is processed individually
+
+
+3. Extracting Unique PyStore Elements
+Once all the values in the columns have been processed, the next step is to extract the unique PyStore elements. This ensures that each time series is only copied once, avoiding duplicate operations.
+
+Goal: Identify all unique time series identifiers across the mapping file.
+Method: Flatten the list of time series identifiers from all columns and store the unique elements.
+
+
+
+4. Copying Time Series Data from Source to Target PyStore
+After identifying the unique PyStore elements, we proceed to copy the corresponding time series data from the source PyStore to the target PyStore.
+
+Source PyStore: This is where the original time series data is stored.
+Target PyStore: This is the destination where the selected time series data will be copied.
+The process involves the following steps:
+
+Open the source and target PyStores: Both PyStores need to be initialized and opened for data transfer.
+Access the collections: In PyStore, time series data is stored in collections. We access the relevant collection in both the source and target PyStores
+
+
+
+The process involves the following steps:
+
+Open the source and target PyStores: Both PyStores need to be initialized and opened for data transfer.
+Access the collections: In PyStore, time series data is stored in collections. We access the relevant collection in both the source and target PyStores.
+Copy the time series data: For each unique PyStore element, the time series data is read from the source collection and written to the target collection.
+
+
+Summary
+This process document outlines the following key steps:
+
+Reading the PyStore mapping file to gather the relevant time series identifiers.
+Handling different data types such as strings and arrays of strings to ensure proper extraction of data.
+Extracting unique PyStore elements to prevent redundant operations.
+Copying time series data from the source PyStore to the target PyStore, ensuring the efficient migration or replication of data.
+By following this process, you can reliably copy specific time series data between two PyStores, ensuring the integrity and accuracy of the transferred data.
+
+
+
+
+
+Process Document: Copying Excel Files and Logs to CMA Database
+This document outlines the process of reading Excel files from a stored location (specified in a config file), copying their content into a CMA database, and also storing the associated log files into the database under a log table.
+
+Step-by-Step Process
+1. Reading the Config File for File Locations
+The first step is to read the configuration file, which contains the paths to the Excel files and their associated log files. The config file is typically a structured file such as JSON, YAML, or a simple .ini file.
+Config File: This file stores the paths of all Excel files and their associated log files.
+Tool: Use Python libraries like json or configparser to read the config file.
+Steps:
+Load the config file.
+Extract the paths of the Excel files and their corresponding log files.
+
+
+2. Processing Each Excel File
+Each Excel file contains data that needs to be inserted into the CMA database. For every Excel file:
+
+Sheet Data: The data from each sheet in the Excel file will be read and then inserted into the relevant table in the CMA database.
+Steps:
+Read each Excel file using pandas to load the data from the sheets.
+Process the data to ensure it is in the correct format for the CMA database.
+Insert the data into the appropriate CMA database tables.
+
+
+
+3. Handling Associated Log Files
+Each Excel file has an associated log file that contains metadata or information about the data processing. This log data will be stored in a designated log table in the CMA database.
+
+Steps:
+Read the log file associated with each Excel file.
+Parse the log data to ensure it's structured and clean for insertion into the log table.
+Insert the log data into the log table in the CMA database.
+
+
+4. Copying Data to CMA Database
+Once both the Excel file data and log file data have been processed, the next step is to insert the data into the CMA database. This involves:
+
+Inserting Sheet Data: The content from each Excel sheet is mapped to the relevant table in the CMA database.
+Inserting Log Data: The content from the associated log file is inserted into the log table in the CMA database.
+Steps:
+Open a connection to the CMA database.
+Insert the sheet data into the respective CMA database tables.
+Insert the log data into the log table.
+
+
+
+Summary
+This process outlines the following key steps:
+
+Reading the config file: Extract the locations of the Excel files and associated log files.
+Processing each Excel file: Read the data from each sheet in the Excel file and prepare it for insertion into the CMA database.
+Handling log files: Read and parse the associated log file and insert the data into the log table.
+Copying data to the CMA database: Insert both the Excel sheet data and the log data into their respective tables in the CMA database.
+By following this process, you can ensure that data from multiple Excel files, along with their logs, is accurately copied to the CMA database, preserving the integrity of the information
