@@ -1,0 +1,519 @@
+import streamlit as st
+import pandas as pd
+import datetime
+
+def set_default_sidebar(self) -> dict:
+    """
+    Main function to set up the default sidebar for the dashboard.
+    It handles retrieving the page-specific filters and generates
+    sidebar elements based on configuration.
+
+    Parameters:
+    None
+
+    Returns:
+    dict: A dictionary containing the selected filter values for the current page.
+    """
+    # Initialize session state variables if they are not set
+    initialize_session_state()
+
+    # Get the current page from the object’s filename attribute
+    page = self.filename
+
+    # Initialize result dictionary for the current page
+    result = {page: {}}
+
+    # Get the sidebar filters for the current page from the configuration
+    filters = get_page_filters(self, page)
+
+    # If no filters are found for the page, display a message and return result
+    if not filters:
+        st.sidebar.title("Kindly add sidebar parameters in the config file to view")
+        return result
+
+    # Loop through each filter defined for the page
+    for key, value in filters.items():
+        # Retrieve the session value if it exists
+        session_value = get_session_value(page, key)
+
+        # Handle dependencies for filters and skip if dependencies are not met
+        if not handle_dependencies(result, page, key, value):
+            continue
+
+        # Retrieve the available option values for the current filter
+        option_values = get_option_values(value)
+
+        # Apply exclusions to the options if specified in the configuration
+        option_values = apply_exclusions(result, page, value, option_values)
+
+        # Create the appropriate sidebar element (e.g., selectbox, checkbox) and get the selected value
+        selected_value = create_sidebar_elements(key, value, option_values, session_value)
+
+        # Store the selected value in the result dictionary
+        result[page][key] = selected_value
+
+        # Update session state to store the selected values for the sidebar
+        st.session_state["sidebar"][page] = result[page]
+
+    # Reset the use_session flag after processing the sidebar
+    st.session_state["use_session"] = False
+
+    # Return the result dictionary for the current page
+    return result[page]
+
+
+def initialize_session_state():
+    """
+    Initializes session state variables if they are not already set.
+    It ensures that 'sidebar', 'current_tab', and 'use_session' are properly initialized.
+    """
+    # Check if 'sidebar' exists in the session state, if not, initialize it
+    if "sidebar" not in st.session_state:
+        st.session_state["sidebar"] = []
+
+    # Initialize 'current_tab' if not present in session state
+    st.session_state["current_tab"] = st.session_state.get("current_tab", None)
+
+    # Initialize 'use_session' to False if not already present
+    st.session_state["use_session"] = st.session_state.get("use_session", False)
+
+
+def get_page_filters(self, page: str) -> dict:
+    """
+    Retrieves the sidebar filters for the given page from the configuration.
+
+    Parameters:
+    page (str): The name of the page for which to retrieve filters.
+
+    Returns:
+    dict: A dictionary containing the filters for the page or an empty dictionary if no filters exist.
+    """
+    # Retrieve the filters for the current page from the config's 'page_organization'
+    return self.config["page_organization"].get(page, {}).get("sidebar", {})
+
+
+def get_session_value(page: str, key: str):
+    """
+    Retrieves the session value for a given key if it exists in the session state.
+
+    Parameters:
+    page (str): The name of the page.
+    key (str): The key for which the session value is to be retrieved.
+
+    Returns:
+    The session value if it exists, or None otherwise.
+    """
+    # If 'use_session' is True and the page is in the session state's sidebar, return the stored session value
+    if st.session_state["use_session"] and page in st.session_state["sidebar"]:
+        return st.session_state["sidebar"][page].get(key)
+    
+    # Return None if no session value is found
+    return None
+
+
+def handle_dependencies(result: dict, page: str, key: str, value: dict) -> bool:
+    """
+    Handles the dependencies of a filter, ensuring that the filter is only processed if its dependencies are met.
+
+    Parameters:
+    result (dict): The current result dictionary.
+    page (str): The current page name.
+    key (str): The current filter key.
+    value (dict): The current filter configuration.
+
+    Returns:
+    bool: True if all dependencies are met, False otherwise.
+    """
+    # Check if the filter has any dependencies; if not, return True
+    if "dependency" not in value:
+        return True
+
+    # Initialize a list to store dependency results
+    dependency_result = []
+    dependencies = value["dependency"]
+
+    # Check each dependency for the current filter
+    if isinstance(dependencies, list):
+        for dep in dependencies:
+            # Retrieve the dependent values for the dependency
+            dependent_values = value.get("dependent_values", [])
+            compare = dependent_values if isinstance(dependent_values, list) else [dependent_values]
+
+            # Check if the dependency value exists in the current result
+            dependency_result.append(result[page].get(dep) in compare)
+
+    # Return True if all dependencies are met, otherwise False
+    return all(dependency_result)
+
+
+def get_option_values(value: dict) -> list:
+    """
+    Retrieves the available option values for the filter based on either 'options' or 'data_source'.
+
+    Parameters:
+    value (dict): The current filter configuration.
+
+    Returns:
+    list: A list of available option values for the filter.
+    """
+    # If the filter has 'options' defined, return them
+    if "options" in value:
+        return value["options"]
+
+    # If the filter has a 'data_source', retrieve options from the data source
+    option_values = []
+    if "data_source" in value:
+        if isinstance(value["data_source"], list):
+            # Loop through each data source and retrieve the column data
+            for src in value["data_source"]:
+                data_frame = pd.DataFrame(st.session_state.get(src))  # Convert session state data to DataFrame
+                st.write(data_frame)  # Write the data frame to Streamlit for debugging (optional)
+                # Append the column values to option_values list
+                option_values += data_frame[value["column"][value["data_source"].index(src)]].tolist()
+
+    # Return the list of option values
+    return option_values
+
+
+def apply_exclusions(result: dict, page: str, value: dict, option_values: list) -> list:
+    """
+    Applies exclusion logic to the option values, filtering out options that are either excluded or match exclusion values.
+
+    Parameters:
+    result (dict): The current result dictionary.
+    page (str): The current page name.
+    value (dict): The current filter configuration.
+    option_values (list): The list of available option values.
+
+    Returns:
+    list: A filtered list of option values after exclusions are applied.
+    """
+    # If 'exclusion' is specified, filter out excluded options
+    if "exclusion" in value:
+        exclusion_list = result[page].get(value["exclusion"], [])
+        option_values = [opt for opt in option_values if opt not in exclusion_list]
+
+    # If 'exclusion_value' is specified, filter out those values
+    if "exclusion_value" in value:
+        exclusion_value = value["exclusion_value"]
+        exclusion_value = exclusion_value if isinstance(exclusion_value, list) else [exclusion_value]
+        option_values = [opt for opt in option_values if opt not in exclusion_value]
+
+    # Return the filtered list of option values
+    return option_values
+
+
+def create_sidebar_elements(key: str, value: dict, option_values: list, session_value):
+    """
+    Creates the appropriate sidebar element based on the filter type (e.g., selectbox, checkbox, radio, date_input).
+
+    Parameters:
+    key (str): The current filter key.
+    value (dict): The current filter configuration.
+    option_values (list): The list of available option values.
+    session_value: The session value for the filter if it exists.
+
+    Returns:
+    The selected value of the sidebar input.
+    """
+    # Retrieve the label and default index for the sidebar element
+    label = value["label"]
+    default_index = value.get("default_index", 0)
+    default_value = None
+
+    # Set default values for date_input elements
+    if "start_date" in key:
+        default_value = datetime.date(1984, 1, 1)
+    elif value["type"] == "date_input":
+        default_value = datetime.date.today()
+
+    # Create the appropriate sidebar element based on its type
+    if value["type"] == "selectbox":
+        return st.sidebar.selectbox(label, option_values, index=default_index)
+    elif value["type"] == "checkbox":
+        return st.sidebar.checkbox(label, value=default_value if session_value is None else session_value)
+    elif value["type"] == "radio":
+        return st.sidebar.radio(label, option_values, index=default_index if session_value is None else option_values.index(session_value))
+    elif value["type"] == "date_input":
+        return st.sidebar.date_input(label, value=default_value if session_value is None else session_value)
+
+    # Return None if no valid type is provided
+    return None
+
+
+################
+
+import unittest
+from unittest.mock import MagicMock, patch
+import streamlit as st
+import pandas as pd
+import datetime
+
+
+class TestSidebarFunctions(unittest.TestCase):
+
+    def setUp(self):
+        # Mock the session state for Streamlit
+        st.session_state.clear()
+
+    @patch('streamlit.sidebar.title')
+    def test_set_default_sidebar_no_filters(self, mock_sidebar_title):
+        # Create a mock object to mimic the 'self' parameter
+        mock_self = MagicMock()
+        mock_self.filename = 'test_page'
+        mock_self.config = {
+            "page_organization": {
+                "test_page": {}
+            }
+        }
+
+        # Call the function
+        result = set_default_sidebar(mock_self)
+
+        # Assertions
+        mock_sidebar_title.assert_called_once_with("Kindly add sidebar parameters in the config file to view")
+        self.assertEqual(result, {})
+
+    @patch('streamlit.sidebar.selectbox')
+    def test_set_default_sidebar_with_filters(self, mock_sidebar_selectbox):
+        # Mock sidebar selectbox return value
+        mock_sidebar_selectbox.return_value = 'Option 1'
+
+        # Create a mock object to mimic the 'self' parameter
+        mock_self = MagicMock()
+        mock_self.filename = 'test_page'
+        mock_self.config = {
+            "page_organization": {
+                "test_page": {
+                    "sidebar": {
+                        "filter1": {
+                            "type": "selectbox",
+                            "label": "Test Filter",
+                            "options": ["Option 1", "Option 2"]
+                        }
+                    }
+                }
+            }
+        }
+
+        # Call the function
+        result = set_default_sidebar(mock_self)
+
+        # Assertions
+        mock_sidebar_selectbox.assert_called_once_with("Test Filter", ["Option 1", "Option 2"], index=0)
+        self.assertEqual(result, {'filter1': 'Option 1'})
+
+    def test_initialize_session_state(self):
+        # Ensure the session state starts off empty
+        self.assertNotIn("sidebar", st.session_state)
+
+        # Call the function
+        initialize_session_state()
+
+        # Assertions
+        self.assertIn("sidebar", st.session_state)
+        self.assertEqual(st.session_state["sidebar"], [])
+        self.assertEqual(st.session_state["current_tab"], None)
+        self.assertEqual(st.session_state["use_session"], False)
+
+    def test_get_page_filters_no_filters(self):
+        # Create a mock object to mimic the 'self' parameter
+        mock_self = MagicMock()
+        mock_self.config = {
+            "page_organization": {}
+        }
+
+        # Call the function
+        filters = get_page_filters(mock_self, "test_page")
+
+        # Assertions
+        self.assertEqual(filters, {})
+
+    def test_get_page_filters_with_filters(self):
+        # Create a mock object to mimic the 'self' parameter
+        mock_self = MagicMock()
+        mock_self.config = {
+            "page_organization": {
+                "test_page": {
+                    "sidebar": {"filter1": {"type": "selectbox"}}
+                }
+            }
+        }
+
+        # Call the function
+        filters = get_page_filters(mock_self, "test_page")
+
+        # Assertions
+        self.assertEqual(filters, {"filter1": {"type": "selectbox"}})
+
+    def test_get_session_value_no_session(self):
+        # Call the function without setting session state
+        value = get_session_value("test_page", "filter1")
+
+        # Assertions
+        self.assertIsNone(value)
+
+    def test_get_session_value_with_session(self):
+        # Set up session state
+        st.session_state["use_session"] = True
+        st.session_state["sidebar"] = {
+            "test_page": {
+                "filter1": "some_value"
+            }
+        }
+
+        # Call the function
+        value = get_session_value("test_page", "filter1")
+
+        # Assertions
+        self.assertEqual(value, "some_value")
+
+    def test_handle_dependencies_no_dependencies(self):
+        # Call the function with no dependencies in the value
+        result = handle_dependencies({}, "test_page", "filter1", {})
+
+        # Assertions
+        self.assertTrue(result)
+
+    def test_handle_dependencies_with_satisfied_dependencies(self):
+        # Set up a result dictionary with a dependency satisfied
+        result_dict = {"test_page": {"dependency1": "value1"}}
+        value = {
+            "dependency": ["dependency1"],
+            "dependent_values": ["value1"]
+        }
+
+        # Call the function
+        result = handle_dependencies(result_dict, "test_page", "filter1", value)
+
+        # Assertions
+        self.assertTrue(result)
+
+    def test_handle_dependencies_with_unsatisfied_dependencies(self):
+        # Set up a result dictionary with a dependency not satisfied
+        result_dict = {"test_page": {"dependency1": "wrong_value"}}
+        value = {
+            "dependency": ["dependency1"],
+            "dependent_values": ["value1"]
+        }
+
+        # Call the function
+        result = handle_dependencies(result_dict, "test_page", "filter1", value)
+
+        # Assertions
+        self.assertFalse(result)
+
+    def test_get_option_values_with_options(self):
+        # Call the function with predefined options
+        value = {"options": ["Option 1", "Option 2"]}
+        options = get_option_values(value)
+
+        # Assertions
+        self.assertEqual(options, ["Option 1", "Option 2"])
+
+    @patch('pandas.DataFrame')
+    def test_get_option_values_with_data_source(self, mock_dataframe):
+        # Mock the DataFrame in session state
+        mock_dataframe.return_value = pd.DataFrame({"col1": ["Option 1", "Option 2"]})
+        st.session_state["data_src"] = mock_dataframe()
+
+        # Call the function with a data source
+        value = {
+            "data_source": ["data_src"],
+            "column": ["col1"]
+        }
+        options = get_option_values(value)
+
+        # Assertions
+        self.assertEqual(options, ["Option 1", "Option 2"])
+
+    def test_apply_exclusions_with_exclusion(self):
+        # Set up a result dictionary with exclusions
+        result_dict = {"test_page": {"filter1": ["Option 1"]}}
+        value = {"exclusion": "filter1"}
+        options = ["Option 1", "Option 2"]
+
+        # Call the function
+        filtered_options = apply_exclusions(result_dict, "test_page", value, options)
+
+        # Assertions
+        self.assertEqual(filtered_options, ["Option 2"])
+
+    def test_apply_exclusions_with_exclusion_value(self):
+        # Set up a filter value with exclusion_value
+        value = {"exclusion_value": "Option 1"}
+        options = ["Option 1", "Option 2"]
+
+        # Call the function
+        filtered_options = apply_exclusions({}, "test_page", value, options)
+
+        # Assertions
+        self.assertEqual(filtered_options, ["Option 2"])
+
+    @patch('streamlit.sidebar.selectbox')
+    def test_create_sidebar_elements_selectbox(self, mock_sidebar_selectbox):
+        # Mock sidebar selectbox return value
+        mock_sidebar_selectbox.return_value = 'Option 1'
+
+        # Call the function with a selectbox type
+        value = {
+            "type": "selectbox",
+            "label": "Test Label"
+        }
+        result = create_sidebar_elements("filter1", value, ["Option 1", "Option 2"], None)
+
+        # Assertions
+        mock_sidebar_selectbox.assert_called_once_with("Test Label", ["Option 1", "Option 2"], index=0)
+        self.assertEqual(result, 'Option 1')
+
+    @patch('streamlit.sidebar.checkbox')
+    def test_create_sidebar_elements_checkbox(self, mock_sidebar_checkbox):
+        # Mock sidebar checkbox return value
+        mock_sidebar_checkbox.return_value = True
+
+        # Call the function with a checkbox type
+        value = {
+            "type": "checkbox",
+            "label": "Test Checkbox"
+        }
+        result = create_sidebar_elements("filter1", value, None, None)
+
+        # Assertions
+        mock_sidebar_checkbox.assert_called_once_with("Test Checkbox", value=None)
+        self.assertTrue(result)
+
+    @patch('streamlit.sidebar.radio')
+    def test_create_sidebar_elements_radio(self, mock_sidebar_radio):
+        # Mock sidebar radio return value
+        mock_sidebar_radio.return_value = 'Option 1'
+
+        # Call the function with a radio type
+        value = {
+            "type": "radio",
+            "label": "Test Radio"
+        }
+        result = create_sidebar_elements("filter1", value, ["Option 1", "Option 2"], None)
+
+        # Assertions
+        mock_sidebar_radio.assert_called_once_with("Test Radio", ["Option 1", "Option 2"], index=0)
+        self.assertEqual(result, 'Option 1')
+
+    @patch('streamlit.sidebar.date_input')
+    def test_create_sidebar_elements_date_input(self, mock_sidebar_date_input):
+        # Mock sidebar date_input return value
+        mock_sidebar_date_input.return_value = datetime.date(2020, 1, 1)
+
+        # Call the function with a date_input type
+        value = {
+            "type": "date_input",
+            "label": "Test Date Input"
+        }
+        result = create_sidebar_elements("filter1", value, None, None)
+
+        # Assertions
+        mock_sidebar_date_input.assert_called_once_with("Test Date Input", value=datetime.date(1984, 1, 1))
+        self.assertEqual(result, datetime.date(2020, 1, 1))
+
+
+# To run the tests, you would use the following command (if you were running this as a script):
+# if __name__ == "__main
