@@ -1,0 +1,86 @@
+Chat history
+
+Open sidebar
+
+ChatGPT Auto
+
+You said:
+Rephrase and make a document 
+Stemp 1: set cma dashboard as working directory 
+
+Update procedure for pystore update and pystore mapping file update 
+
+Step 2: check out required files
+1. Updated config
+2. Input folder
+3. Check out cma_current.db
+
+Step 3 : open update config json file and mark update pystore and update pystore mapping as true . Update pystore mapping as true only if you want to update pystore mapping file to cma dab
+
+
+
+Update procedure for cma out files.
+Checkout following files
+1. Update config.json
+2. Cma_current db
+
+For information 
+Update config file consist of all folder information from which files need to copies and stored in cma db
+
+2. All information related to files and sheets are stored in config.json with information on which sheet need to be mapped with which table in cma db 
+
+Step 3 mark update config to true 
+
+Step 4 
+Step 4: go to terminal maintaining working directory as cma dashboard  and run streamlit app using command 
+
+Python -m streamlit run Home.py
+
+
+It would update It would update the cma output pystore collection add a log entry in cma db log table and pystore mapping file if for what ever marked as true to true
+ChatGPT said:
+ChatGPT
+Document: Update Procedure for CMA Dashboard
+Step 1: Set Working Directory
+Set the CMA dashboard as your working directory.
+
+Step 2: Check Out Required Files
+Ensure the following files are checked out:
+
+Updated Config
+Input Folder
+cma_current.db
+Step 3: Update Configuration
+Open the update_config.json file.
+Set the following values:
+update_pystore: True
+update_pystore_mapping: True (only if you want to update the pystore mapping file in the CMA database).
+Update Procedure for CMA Output Files
+Check out the following files:
+
+Update Config.json
+cma_current.db
+Additional Information
+The update config file contains folder information from which files need to be copied and stored in the CMA database.
+All information related to files and sheets is stored in config.json, detailing which sheet maps to which table in the CMA database.
+Step 4: Mark Configuration
+Mark update_config as True.
+
+Step 5: Run Streamlit App
+Open the terminal, ensuring your working directory is set to the CMA dashboard.
+Run the Streamlit app using the following command:
+bash
+Copy code
+python -m streamlit run Home.py
+Outcome
+This process will update the CMA output pystore collection, add a log entry in the CMA database log table, and update the pystore mapping file for any configurations marked as True.
+
+
+
+
+
+
+
+
+
+ChatGPT can make mistakes. Check important info.
