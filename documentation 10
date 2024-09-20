@@ -1,0 +1,72 @@
+# Define the path to the pystore mapping configuration from the update config
+pystore_mapping_path = update_config["paths"]["pystore_mapping"]
+
+# Fetch unique pystore items using the specified mapping path
+data = get_unique_pystore_item(pystore_mapping_path)
+
+# Update the data based on elements specified in the update config
+data = update_config["pystore_elements"]
+
+# Copy or store data from the source to the target path in the pystore
+copy_or_store_data(
+    data=data,
+    source_path=update_config["pystore_source"]["store_path"],
+    source_store_name=update_config["pystore_source"]["store_name"],
+    source_collection_name=update_config["pystore_source"]["collection_name"],
+    target_path=update_config["session_state"]["pystore_connection"]["store_path"],
+    target_store_name=update_config["session_state"]["pystore_connection"]["store_name"],
+    target_collection_name=update_config["session_state"]["pystore_connection"]["collection_name"]
+)
+
+# Check if the mapping needs to be updated
+if update_mapping:
+    try:
+        # Attempt to connect to the SQLite database
+        conn = sqlite3.connect(cma_db_path)
+
+        # Read the mapping data from the CSV file into a DataFrame
+        mapping_data = pd.read_csv(pystore_mapping_path, index_col=0)
+
+        # Write the mapping data to the 'pystore_mapping' table in the database
+        mapping_data.to_sql("pystore_mapping", conn, if_exists="replace", index=True)
+
+    except Exception as e:
+        # Handle any errors that occur during the database update
+        st.write(f"Error updating CMA datafile for pystore mapping: {e}")
+
+# Check again if the mapping needs to be updated
+if update_mapping:
+    try:
+        # Attempt to connect to the SQLite database again
+        conn = sqlite3.connect(cma_db_path)
+
+        # Read the mapping data from the CSV file into a DataFrame (again)
+        mapping_data = pd.read_csv(pystore_mapping_path, index_col=0)
+
+        # Write the mapping data to the 'pystore_mapping' table in the database (again)
+        mapping_data.to_sql("pystore_mapping", conn, if_exists="replace", index=True)
+
+    except Exception as e:
+        # Handle any errors that occur during the second database update
+        st.write(f"Error updating CMA datafile for pystore mapping: {e}")
+
+# Update the last updated timestamp in the update configuration
+update_config["update_pystore"] = False  # Set flag to indicate no further updates needed
+update_config["update_pystore_mapping"] = False  # Set flag to indicate no further mapping updates needed
+
+# Record the current date in the session state for the last updated field
+update_config["session_state"]["last_updated"] = datetime.now().date().strftime('%d %b %Y')
+
+# Write the updated configuration back to the JSON file
+with open(update_config_path, 'w') as f:
+    json.dump(update_config, f, indent=4)  # Save changes with proper formatting
+
+# Log a message indicating that the configuration file was updated successfully
+print(f"Config file updated at {update_config_path}")
+
+except Exception as e:
+    # Handle any errors that occur during the update of the config file
+    print(f"Error updating config file {update_config_path}: {e}")
+
+# Return None (explicitly stated)
+return None
