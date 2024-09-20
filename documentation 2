@@ -1,0 +1,130 @@
+import streamlit as st
+import pandas as pd
+import datetime
+
+def set_default_sidebar(self) -> dict:
+    """
+    Sets the default sidebar for the dashboard.
+
+    This method adds a sidebar title and writes a sample message on the sidebar.
+    It retrieves configuration from the `page_organization` of the class and
+    sets up sidebar filters based on the configuration. If no sidebar parameters 
+    are found, it prompts the user to update the config file.
+
+    Parameters:
+    None
+
+    Returns:
+    dict: The result dictionary containing the filter selections for the current page.
+    """
+
+    # Initialize result dictionary
+    result = {}
+
+    # Check if 'sidebar' is in session state, if not initialize it
+    if "sidebar" not in st.session_state:
+        st.session_state["sidebar"] = []
+
+    # Initialize the session state for "current_tab" and "use_session"
+    st.session_state["current_tab"] = st.session_state.get("current_tab", None)
+    st.session_state["use_session"] = st.session_state.get("use_session", False)
+
+    # Get the current page from the class attribute
+    page = self.filename
+
+    # Retrieve sidebar configuration for the page
+    filters = self.config["page_organization"].get(page, {}).get("sidebar", {})
+
+    # Initialize the result dictionary for the current page
+    result.update({page: {}})
+
+    # If the current page is not the same as the session state, update session state
+    if page != st.session_state["current_tab"]:
+        st.session_state["use_session"] = True
+        st.session_state["current_tab"] = page
+
+    # If the page is not in the config, show an error message in the sidebar
+    if page not in self.config["page_organization"].keys():
+        st.sidebar.title("Kindly add sidebar parameters in the config file to view")
+        return result
+
+    else:
+        # Iterate over the filters set in the config file
+        for key, value in filters.items():
+            session_value = None
+
+            # Use session state if applicable
+            if st.session_state["use_session"]:
+                if page in st.session_state["sidebar"]:
+                    session_value = st.session_state["sidebar"][page].get(key)
+
+            # Check if the parameter has a dependency
+            if "dependency" in value:
+                dependency_result = []
+                
+                # Check if the dependency is a list and process accordingly
+                if isinstance(value["dependency"], list):
+                    for dep in value["dependency"]:
+                        dependent_values = value.get("dependent_values", [])
+                        compare = dependent_values if isinstance(dependent_values, list) else [dependent_values]
+                        # Check if the dependency is fulfilled
+                        if result[page].get(dep) in compare:
+                            dependency_result.append(True)
+                        else:
+                            dependency_result.append(False)
+                    # Set dependency_result to False if any dependencies are not met
+                    if not all(dependency_result):
+                        continue
+
+            # Handle optional and exclusion logic
+            option_values = []
+            if "options" in value:
+                option_values = value["options"]
+            elif "data_source" in value:
+                # If the data source is a list, process the options
+                if isinstance(value["data_source"], list):
+                    for src in value["data_source"]:
+                        data_frame = pd.DataFrame(st.session_state.get(src))
+                        st.write(data_frame)
+                        option_values += data_frame[value["column"][value["data_source"].index(src)]].tolist()
+
+            # Handle exclusion logic
+            if "exclusion" in value:
+                option_values = [opt for opt in option_values if opt not in result[page].get(value["exclusion"], [])]
+
+            # Handle exclusion_value logic
+            if "exclusion_value" in value:
+                exc_val = value["exclusion_value"]
+                if not isinstance(exc_val, list):
+                    exc_val = [exc_val]
+                option_values = [opt for opt in option_values if opt not in exc_val]
+
+            # Set default index and values based on types and options
+            label = value["label"]
+            default_index = value.get("default_index", 0)
+            default_value = None
+
+            if "start_date" in key:
+                default_value = datetime.date(1984, 1, 1)
+            elif "end_options" in key and "apply_all" in st.session_state:
+                default_index = st.session_state["apply_all"]
+
+            # Create the sidebar elements based on the type
+            if value["type"] == "selectbox":
+                selected_value = st.sidebar.selectbox(label, option_values, index=default_index)
+            elif value["type"] == "checkbox":
+                selected_value = st.sidebar.checkbox(label, value=default_value if session_value is None else session_value)
+            elif value["type"] == "radio":
+                selected_value = st.sidebar.radio(label, option_values, index=default_index if session_value is None else option_values.index(session_value))
+            elif value["type"] == "date_input":
+                selected_value = st.sidebar.date_input(label, value=default_value if session_value is None else session_value)
+
+            # Store the selected value in result and update session state
+            result[page][key] = selected_value
+            st.session_state["sidebar"][page] = result[page]
+
+        # Disable session usage
+        st.session_state["use_session"] = False
+
+        # Return the result for the current page
+        return result[page]
