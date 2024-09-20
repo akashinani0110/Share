@@ -1,0 +1,89 @@
+def set_session_state(self) -> None:
+    """
+    Sets the session state variables based on the configuration.
+
+    If the session state is active, this method iterates over the variables
+    in the session state configuration and updates the session state dictionary
+    with the corresponding variables.
+
+    Returns:
+        None
+    """
+    
+    # Check if the session state is active in the configuration
+    if self.config["session_state"]["active"]:
+        
+        # Iterate over the variables in the session state configuration
+        for var, value in self.config["session_state"]["variables"].items():
+            
+            # If the variable is not already in the session state, set it
+            if var not in st.session_state:
+                st.session_state[var] = value
+
+        # Update the config with session state for certain variables
+        for var, value in self.update_config["session_state"].items():
+            
+            # If the variable is not already in the session state, set it
+            if var not in st.session_state:
+                st.session_state[var] = value
+
+        # Path for data, using the effective year from the session state
+        data_path = self.update_config.get("paths").get("cms_data_path").format(st.session_state["effective_year"])
+
+        # Create a SQLite connection using the data path
+        connection = sqlite3.connect(data_path)
+        st.session_state["connection"] = connection
+
+
+def set_page_state(self) -> None:
+    """
+    Sets the session state variables related to page configurations.
+
+    This method updates session state variables based on the configuration for
+    pages, including additional data and chart configuration.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
+
+    # Get the page organization configuration
+    config = self.config.get("page_organization", {}).get(self.name, {})
+
+    # Set 'additional_data' in session state if it exists in the config
+    st.session_state["additional_data"] = config.get("additional_data") if "additional_data" in config else None
+
+    # Set 'chart_config' in session state if it exists in the config
+    st.session_state["chart_config"] = config.get("chart_config") if "chart_config" in config else None
+
+    # Set 'statistic_header' in session state if it exists in the config
+    st.session_state["statistic_header"] = config.get("statistic_header") if "statistic_header" in config else None
+
+
+def set_page_state_v2(self) -> None:
+    """
+    Sets the session state variables for the pages based on the page configuration.
+
+    This method also sets additional session state values such as `chart_config` and
+    `statistic_header`, based on the existence of those values in the configuration.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
+
+    # Get page organization configuration for the current page name
+    config = self.config["page_organization"].get(self.name, {})
+
+    # Set 'additional_data' in session state, if exists in the config
+    st.session_state["additional_data"] = config.get("additional_data") if "additional_data" in config else None
+
+    # Set 'chart_config' in session state, if exists in the config
+    st.session_state["chart_config"] = config.get("chart_config") if "chart_config" in config else None
+
+    # Set 'statistic_header' in session state, if exists in the config
+    st.session_state["statistic_header"] = config.get("statistic_header") if "statistic_header" in config else None
