@@ -1,0 +1,90 @@
+import pandas as pd
+
+def get_data(time_series_input: tuple, relative_to: bool = False) -> dict:
+    """
+    Retrieves the time series data based on the provided input.
+    
+    Args:
+        time_series_input (tuple): Tuple containing the short name and type of time series.
+        relative_to (bool, optional): Whether to calculate the relative difference. Default is False.
+    
+    Returns:
+        dict: A dictionary containing the time series data and proxy index.
+
+    Raises:
+        ValueError: If an error occurs while retrieving data or if invalid input is provided.
+    """
+    proxy_index = dict()  # Initialize an empty dictionary for proxy indices
+    time_series = dict()  # Initialize an empty dictionary for time series data
+
+    # Iterate through each category and name in the time_series_input
+    for category, name in time_series_input:
+        # Retrieve metadata information for the given category and name
+        info = get_metadata_info(category, name)
+        short_name = info[8]  # Extract the short name from the metadata info
+        proxy_index[name] = info[1]  # Store the proxy index based on the name
+
+        try:
+            # Handle data retrieval based on category
+            if category in ["Asset classes", "Other Predictors", "pystore"]:
+                # Initialize Pystore data if not already in session state
+                if "pystore_data" not in st.session_state.keys():
+                    st.session_state["pystore_data"] = PystoreCustom()
+                # Retrieve data from Pystore
+                data = st.session_state["pystore_data"].get_pystore_data(short_name)
+
+            elif category in ["Factor Predictors", "Factors"]:
+                # Set the data sheet and index based on the category
+                if category == "Factors":
+                    data_sheet = "factors_data"
+                    index = "Dates"
+                elif category == "Factor Predictors":
+                    data_sheet = "factor_predictor_data"
+                    index = "Dates"
+                
+                # Generate SQL query to retrieve the data
+                data_sqlite = generate_sql_query(table_name=data_sheet, select_columns=[index, short_name])
+                data = pd.Series(data_sqlite[short_name])  # Create a Series from the retrieved data
+
+                # Set the index of the Series to the date column
+                data.index = pd.to_datetime(data_sqlite[index])
+                data = data.dropna()  # Remove any NaN values
+
+            else:
+                # Raise an error if the category is invalid
+                raise ValueError("Invalid category type")
+
+            # Store the retrieved data in the time_series dictionary
+            time_series[name] = data
+
+        except Exception as e:
+            # Handle exceptions that occur during data retrieval
+            raise ValueError(f"An error occurred while retrieving data for {name}: {e}")
+
+    # Process for relative calculations if required
+    input1 = time_series_input[0][1]  # Get the first time series name
+
+    if relative_to:
+        if len(time_series_input) != 2:
+            raise ValueError("Exactly 2 time series are required to calculate relative difference")
+        
+        input2 = time_series_input[1][1]  # Get the second time series name
+        
+        # Align the time series data
+        ts, tsi = align_time_series(time_series[input1], time_series[input2])  # Assume align_time_series is defined
+        
+        # Calculate the relative difference based on aligned time series
+        result_series = ts / tsi  # Example calculation for relative difference
+        result_proxy = "".join([proxy_index[input1], proxy_index[input2]])
+
+    else:
+        # If not calculating relative, prepare the result from the single or all time series
+        if len(time_series_input) == 1:
+            result_series = time_series[input1]
+            result_proxy = proxy_index[input1]
+        elif len(time_series_input) == 2:
+            result_series = time_series
+            result_proxy = proxy_index  # Return all proxy indices
+
+    # Return the final result as a dictionary
+    return dict(time_series=result_series, proxy_index=result_proxy)
