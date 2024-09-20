@@ -1,0 +1,153 @@
+import json
+import os
+import pandas as pd
+import sqlite3
+from datetime import datetime
+
+def map_config(
+    json_config_path: str = "assets/config.json",
+    update_config_path: str = "assets/update_config.json",
+    data_files: list = None,
+    cma_db_path: str = None
+):
+    """
+    Fetch data from Excel files based on a JSON configuration and update a database.
+
+    Parameters:
+    - json_config_path (str): Path to the JSON configuration file.
+    - update_config_path (str): Path to the update configuration file.
+    - data_files (list): List of files that need to be processed. If None, defaults are used.
+    - cma_db_path (str): Path to the SQLite database.
+
+    Returns:
+    - None: Updates the database and logs the changes.
+    """
+
+    # Attempt to load the configuration files
+    try:
+        # Load main configuration
+        with open(json_config_path, 'r') as f:
+            config = json.load(f)
+        # Load update configuration
+        with open(update_config_path, 'r') as f:
+            update_config = json.load(f)
+    except FileNotFoundError as e:
+        # Handle missing configuration file error
+        raise ValueError(f"Error: Config file not found: {e.filename}")
+    except json.JSONDecodeError:
+        # Handle JSON format errors
+        raise ValueError(f"Error: Invalid JSON format in config file '{json_config_path}'.")
+
+    # Connect to the SQLite database
+    conn = sqlite3.connect(cma_db_path)
+
+    # Check if the 'Log' table exists in the database
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Log'")
+    log_table_exists = cursor.fetchone() is not None  # True if the table exists
+
+    # Default data files if not provided
+    if data_files is None:
+        data_files = [
+            "CMA_proposed_data",
+            "CMA_current_data",
+            "cma_aftertax_value_proposed",
+            "cma_aftertax_value_current",
+            "cma_output_proposed",
+            "cma_output_current"
+        ]
+
+    # Retrieve the directory path for the files to be processed
+    directory_path = update_config["paths"]
+
+    # Iterate through each file specified in data_files
+    for file in data_files:
+        # Get the folder mapping for the current file
+        folder_mapping = config["session_data_files"][file]["path"]
+        folder = directory_path.get(folder_mapping).format(directory_path.get("directory"))
+        # Construct the full file path
+        file_name = config["session_data_files"][file]['file']
+        file_path = os.path.join(folder, file_name)
+
+        try:
+            # Read the log data from the specified Excel file
+            log_data = pd.read_excel(file_path, sheet_name="Log", header=None)
+
+            # Filter log data based on sheets specified in the config
+            sheets_to_filter = [key for key in config["session_data_files"][file]['sheets'].keys()]
+            sheets_to_filter.insert(0, "Timestamp")  # Include Timestamp in the filter
+            log_data = log_data[log_data[8].isin(sheets_to_filter)]  # Filter rows based on the 9th column
+            log_data[8] = log_data[6].replace("Timestamp", file_name)  # Update column with file name
+            log_data.columns = ["Sheet name", "Timestamp"]  # Rename columns
+            log_data["updated_on"] = pd.Timestamp.now()  # Add timestamp for when data was updated
+            log_data["folder_path"] = folder  # Add folder path
+            log_data["file_name"] = file_name  # Add file name
+
+            # Update the 'Log' table in the database
+            if log_table_exists:
+                log_data.to_sql("Log", conn, if_exists="append", index=False)  # Append if exists
+            else:
+                log_data.to_sql("Log", conn, if_exists="replace", index=False)  # Replace if not exists
+
+        except Exception as e:
+            # Handle errors while reading or processing the Excel file
+            print(f"An error occurred while reading {file_name}: {e}")
+
+        # Process each sheet in the configuration for the current file
+        for sheet_name, sheet_info in config["session_data_files"][file]['sheets'].items():
+            try:
+                # Get number of rows to skip if specified
+                skip = sheet_info.get("skiprows", 0)
+                # Read the specified sheet from the Excel file
+                df = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=skip)
+
+                # Handle date columns if specified
+                if "date_column" in sheet_info:
+                    for column in sheet_info["date_column"]:
+                        # Convert specified columns to date format
+                        df[column] = pd.to_datetime(df[column]).dt.strftime("%Y-%m-%d")
+
+                # Apply filters if specified in the config
+                if 'filter' in sheet_info:
+                    for column, value in sheet_info['filter'].items():
+                        if isinstance(value, dict):
+                            # Fetch data based on a SQL query
+                            data = generate_sql_query(table_name=value["from"], conn=conn)
+                            filter_values = data[value["on"]].tolist()  # Get filter values from queried data
+                        else:
+                            filter_values = value  # Use specified value directly
+
+                        # Clean filter values by removing underscores
+                        filter_values = [i.replace("_", "") for i in filter_values]
+                        # Filter DataFrame based on the specified column and filter values
+                        df = df[df[column].isin(filter_values)]
+
+                # Set the DataFrame index if specified
+                if "set_index" in sheet_info:
+                    df.set_index(sheet_info["set_index"], inplace=True)
+
+                # Select specified columns if necessary
+                if "column_name" in sheet_info:
+                    df = df[sheet_info['column_name']]
+
+                # Save the processed DataFrame to the database
+                df.to_sql(sheet_info["map_to"], conn, if_exists="replace", index=True)
+                print(f"{sheet_info['map_to']} updated successfully")  # Log success
+
+            except Exception as e:
+                # Handle errors while processing individual sheets
+                print(f"An error occurred while processing sheet {sheet_name} from {file_name}: {e}")
+
+    # Update the last updated timestamp in the update config
+    try:
+        # Update the last updated timestamp in the update configuration
+        update_config["session_state"]["last_updated"] = datetime.now().strftime('%d %b %Y')
+        with open(update_config_path, 'w') as f:
+            json.dump(update_config, f, indent=4)  # Write updates back to the config file
+        print(f"Config file updated at {update_config_path}")  # Log success
+    except Exception as e:
+        # Handle errors while updating the config file
+        print(f"Error updating config file {update_config_path}: {e}")
+
+    # Close the database connection
+    conn.close()
