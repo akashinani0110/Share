@@ -1,0 +1,126 @@
+import plotly.graph_objects as go
+import streamlit as st
+
+def add_chart_to_report(chart_key: str, 
+                        chart_header: str, 
+                        chart: go.Figure, 
+                        chart_footer: str = None, 
+                        include_key: bool = True) -> None:
+    """
+    Function to add a chart to a user-selected report.
+    
+    Args:
+        chart_key (str): Name of the chart selected.
+        chart_header (str): The header for the chart.
+        chart (go.Figure): The chart (Plotly figure) to be added.
+        chart_footer (str, optional): The footer for the chart. Default is None.
+        include_key (bool, optional): Flag to include the chart key. Default is True.
+
+    Returns:
+        None
+    """
+
+    # Check if the session state has a "report_counter", if not, initialize it to 0.
+    if "report_counter" not in st.session_state:
+        st.session_state["report_counter"] = 0
+
+    # Increment the report counter for each chart added.
+    i = st.session_state["report_counter"] + 1
+    st.session_state["report_counter"] = i
+
+    # Check if the session state has a "generate_report" key, if not, initialize it to an empty dictionary.
+    if "generate_report" not in st.session_state:
+        st.session_state["generate_report"] = dict()
+
+    # Add the chart details to the session state "generate_report" dictionary.
+    st.session_state["generate_report"][str(i)] = {
+        "chart_key": chart_key,         # Store the chart key.
+        "header": chart_header,         # Store the chart header.
+        "chart": chart,                 # Store the actual chart (Plotly figure).
+        "footer": chart_footer,         # Store the chart footer (can be None).
+        "include_key": include_key      # Store whether the chart key should be included or not.
+    }
+
+    # Display a success message to indicate the chart has been added.
+    st.success("Chart added to the list in Generate Reports tab")
+
+
+
+import unittest
+from unittest.mock import patch, MagicMock
+import plotly.graph_objects as go
+import streamlit as st
+
+# Importing the function that we are going to test
+# from the file where it's defined, e.g., from app import add_chart_to_report
+from your_module import add_chart_to_report
+
+class TestAddChartToReport(unittest.TestCase):
+
+    @patch('streamlit.session_state', {})
+    @patch('streamlit.success')  # Mock st.success to avoid actual Streamlit calls
+    def test_add_chart_to_report(self, mock_success):
+        # Initialize test values
+        chart_key = "test_chart_key"
+        chart_header = "Test Chart Header"
+        chart = go.Figure()  # Create a blank Plotly chart
+        chart_footer = "Test Chart Footer"
+        include_key = True
+
+        # Call the function to test
+        add_chart_to_report(chart_key, chart_header, chart, chart_footer, include_key)
+
+        # Assertions
+
+        # Check that the "report_counter" has been initialized and incremented correctly
+        self.assertIn("report_counter", st.session_state)
+        self.assertEqual(st.session_state["report_counter"], 1)
+
+        # Check that the "generate_report" dict has been updated correctly
+        self.assertIn("generate_report", st.session_state)
+        self.assertIn("1", st.session_state["generate_report"])
+
+        # Verify the chart details are stored correctly in session_state
+        chart_data = st.session_state["generate_report"]["1"]
+        self.assertEqual(chart_data["chart_key"], chart_key)
+        self.assertEqual(chart_data["header"], chart_header)
+        self.assertEqual(chart_data["chart"], chart)
+        self.assertEqual(chart_data["footer"], chart_footer)
+        self.assertEqual(chart_data["include_key"], include_key)
+
+        # Check if success message was called once
+        mock_success.assert_called_once_with("Chart added to the list in Generate Reports tab")
+
+    @patch('streamlit.session_state', {})
+    @patch('streamlit.success')  
+    def test_add_chart_to_report_no_footer(self, mock_success):
+        # Initialize test values without footer
+        chart_key = "test_chart_key_no_footer"
+        chart_header = "Test Chart Header No Footer"
+        chart = go.Figure()
+        include_key = True
+
+        # Call the function with default footer (None)
+        add_chart_to_report(chart_key, chart_header, chart, None, include_key)
+
+        # Assertions
+        self.assertIn("report_counter", st.session_state)
+        self.assertEqual(st.session_state["report_counter"], 1)
+
+        self.assertIn("generate_report", st.session_state)
+        self.assertIn("1", st.session_state["generate_report"])
+
+        # Verify the chart details
+        chart_data = st.session_state["generate_report"]["1"]
+        self.assertEqual(chart_data["chart_key"], chart_key)
+        self.assertEqual(chart_data["header"], chart_header)
+        self.assertEqual(chart_data["chart"], chart)
+        self.assertIsNone(chart_data["footer"])  # Footer should be None
+        self.assertEqual(chart_data["include_key"], include_key)
+
+        # Check if success message was called once
+        mock_success.assert_called_once_with("Chart added to the list in Generate Reports tab")
+
+# Run the tests
+if __name__ == '__main__':
+    unittest.main()
