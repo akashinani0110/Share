@@ -1,0 +1,460 @@
+------- align time series 
+
+# Define valid data types for the time series
+valid_types = ["r", "p"]
+
+# Check if all datatypes are valid and if return_datatype is also valid
+if not all(dt in valid_types for dt in datatypes) or return_datatype not in valid_types:
+    raise ValueError('Invalid datatype. Allowed values are "r" or "p".')
+
+try:
+    # Set cumulative product for both time series based on their datatypes
+    # If the first datatype is "r", compute the cumulative product; otherwise, use the original series
+    ts_1 = np.cumprod(1 + ts1) if datatypes[0] == "r" else ts1
+
+    # Do the same for the second time series
+    ts_2 = np.cumprod(1 + ts2) if datatypes[1] == "r" else ts2
+
+    # Concatenate the two time series into a DataFrame, aligning them by index and dropping NaN values
+    data = pd.concat([ts_1, ts_2], axis=1, join="outer").dropna()
+
+    # Calculate percentage change if return_datatype is "r"; otherwise, use the original data
+    data = data.pct_change() if return_datatype == "r" else data
+
+    # Return the processed time series for further analysis
+    return data.iloc[:, 0], data.iloc[:, 1]  # Return the first and second time series
+
+except Exception as e:
+    # Handle any exception that occurs during the process and raise a ValueError with a descriptive message
+    raise ValueError("An error occurred during alignment: {}".format(e))
+
+
+
+
+------ generate SQL query 
+
+import pandas as pd
+import plotly.graph_objects as go
+
+# Helper function to handle column names
+def format_column(column):
+    """Formats a column name for SQL queries."""
+    try:
+        # Return the column name in quotes if it contains spaces
+        return f'"{column}"' if isinstance(column, str) and " " in column else column
+    except Exception as e:
+        # Print an error message if formatting fails
+        print(f"Error formatting column: {e}")
+        return column  # Return the unformatted column in case of error
+
+# Function to construct and execute a SQL query
+def construct_query(select_columns, conditions, table_name, conn=None):
+    """Constructs a SQL query based on provided columns and conditions."""
+    try:
+        # Handle the SELECT clause
+        if not select_columns:
+            # If no columns specified, select all
+            select_clause = "*"
+        elif isinstance(select_columns, list):
+            # Join list of columns into a single string, formatting each column
+            select_clause = ", ".join(format_column(col) for col in select_columns)
+        else:
+            # Format a single column name
+            select_clause = format_column(select_columns)
+
+        # Initialize the WHERE clause
+        where_clause = ""
+        if conditions:
+            # Create a list to hold individual conditions
+            clauses = []
+            for column, operator, value in conditions:
+                # Format the column name
+                formatted_column = format_column(column)
+                try:
+                    # Handle string values in conditions
+                    if isinstance(value, str):
+                        clauses.append(f"({formatted_column} {operator} '{value}')")
+                    # Handle None values
+                    elif value is None:
+                        clauses.append(f"{formatted_column} IS NULL")
+                    else:
+                        # Handle numeric or other values
+                        clauses.append(f"({formatted_column} {operator} {value})")
+                except Exception as e:
+                    # Print an error message if condition processing fails
+                    print(f"Error processing condition: {e}")
+                    continue  # Skip this condition on error
+
+            # Join all clauses with AND
+            where_clause = " AND ".join(clauses)
+
+        # Construct the full SQL query
+        query = f"SELECT {select_clause} FROM {table_name} {where_clause}"
+        return query  # Return the constructed query
+
+    except Exception as e:
+        # Print an error message if query construction fails
+        print(f"Error constructing query: {e}")
+        return None  # Return None if there's an error
+
+def create_chart(chart_type: str, data: dict, **kwargs: dict) -> go.Figure:
+    """Creates a chart using Plotly based on the provided chart type and data."""
+    try:
+        # Check if the provided chart type is supported
+        if chart_type not in ['bar', 'line', 'scatter']:
+            raise ValueError("Unsupported chart type provided.")
+
+        # Initialize a new figure for the chart
+        fig = go.Figure()
+        if chart_type == 'bar':
+            # Add a bar chart trace
+            fig.add_trace(go.Bar(x=data['x'], y=data['y'], **kwargs))
+        elif chart_type == 'line':
+            # Add a line chart trace
+            fig.add_trace(go.Scatter(x=data['x'], y=data['y'], mode='lines', **kwargs))
+        elif chart_type == 'scatter':
+            # Add a scatter plot trace
+            fig.add_trace(go.Scatter(x=data['x'], y=data['y'], mode='markers', **kwargs))
+
+        return fig  # Return the created figure
+    except Exception as e:
+        # Print an error message if chart creation fails
+        print(f"Error creating chart: {e}")
+        return None  # Return None if there's an error
+
+
+
+------- create chart
+# Initialize the chart variable to None
+chart = None
+
+# Add more chart types as needed
+try:
+    # Check if the chart type is 'Bar'
+    if chart_type == 'Bar':
+        # Create a Bar chart using the data
+        chart = go.Bar(x=list(data.index), y=list(data), **kwargs)
+
+    # Check if the chart type is 'Waterfall'
+    elif chart_type == 'Waterfall':
+        # Create a Waterfall chart using the data
+        chart = go.Waterfall(x=list(data.index), y=list(data), **kwargs)
+
+    # Check if the chart type is 'Heatmap'
+    elif chart_type == 'Heatmap':
+        # Create a Heatmap using the data, using 'z', 'x', and 'y' parameters
+        chart = go.Heatmap(z=list(data.index), x=data.get('x'), y=data.get('y'), **kwargs)
+
+    # Check if the chart type is 'Scatter'
+    elif chart_type == 'Scatter':
+        # Check if data is None
+        if data is None:
+            # Create a Scatter chart without data
+            chart = go.Scatter(**kwargs)
+        else:
+            # Create a Scatter chart using the data
+            chart = go.Scatter(x=list(data.index), y=list(data), **kwargs)
+
+    # If the chart type is not recognized, raise an error
+    else:
+        raise ValueError("Kindly ask app admin to add charts")
+
+    # Return the created chart
+    return chart
+
+except Exception as e:
+    # Print an error message if chart creation fails
+    print(f"Error creating chart: {e}")
+    return None  # Return None in case of an error
+
+
+
+
+
+
+--------- multiple traces 
+# Check if the figure is a subplot
+if is_subplot:
+    # Get the number of columns from the subplot layout
+    cols = subplot_layout["cols"]
+    
+    try:
+        # Create a subplot figure using the specified layout
+        fig = sp.make_subplots(**subplot_layout)
+    except Exception as e:
+        print(f"Error creating subplots: {e}")
+        fig = None  # Initialize fig as None in case of failure
+
+    # Loop through each chart information
+    for i, chart_info in enumerate(charts):
+        # Calculate the row and column for the subplot
+        row = i // cols + 1  # Determine the row index
+        col = i % cols + 1   # Determine the column index
+
+        try:
+            # Check if chart_info is a list (multiple traces)
+            if isinstance(chart_info, list):
+                # Add each trace to the specified subplot
+                for trace in chart_info:
+                    fig.add_trace(trace, row=row, col=col)
+            else:
+                # Add a single trace to the specified subplot
+                fig.add_trace(chart_info, row=row, col=col)
+
+        except Exception as e:
+            # Print an error message if adding traces fails
+            print(f"Error adding trace to subplot at row {row}, col {col}: {e}")
+
+# If not a subplot, create a new figure
+else:
+    try:
+        # Initialize a new figure
+        fig = go.Figure()
+
+        # Loop through each chart in the charts list
+        for chart in charts:
+            try:
+                # Check if the chart is a list (multiple traces)
+                if isinstance(chart, list):
+                    # Add each trace to the figure
+                    for trace in chart:
+                        fig.add_trace(trace)
+                else:
+                    # Add a single trace to the figure
+                    fig.add_trace(chart)
+
+            except Exception as e:
+                # Print an error message if adding traces fails
+                print(f"Error adding trace to figure: {e}")
+
+        # Update the layout of the figure with additional keyword arguments
+        fig.update_layout(**kwargs)
+
+    except Exception as e:
+        # Print an error message if figure initialization fails
+        print(f"Error creating figure: {e}")
+        fig = None  # Initialize fig as None in case of failure
+
+# Return the constructed figure
+return fig
+
+
+
+
+
+---------- create chart from config
+
+# Initialize an empty list to hold the charts
+charts = []
+
+# Get the chart type from the configuration
+chart_type = chart_config['type']
+
+# Get additional keyword arguments, if any, from the configuration
+kwargs = chart_config.get('kwargs', {})
+
+# Check if 'chart data' is present in the configuration
+if "chart_data" in chart_config:
+    # Retrieve the chart data from the provided data source
+    chart_data = data[chart_config['chart_data']]
+
+    # Check if 'end_trace' is specified and true in the configuration
+    if ("end_trace" in chart_config.keys()) and (chart_config['end_trace']):
+        try:
+            # Select the last row of chart data
+            chart_data = chart_data.iloc[-1:]
+            # Format the text in kwargs based on the chart data
+            kwargs["text"] = [kwargs["text"].format(value=value) for value in chart_data]
+
+        except Exception as e:
+            print(f"Error processing end trace: {e}")
+
+    # Check if 'add_point' is specified and true in the configuration
+    if ("add_point" in chart_config.keys()) and (chart_config['add_point']):
+        try:
+            # Update the text in kwargs for each point in chart data
+            kwargs["text"] = [kwargs["text"].format(x=chart_data.values[i], y=chart_data.index[i]) 
+                              for i in range(len(chart_data))]
+
+        except Exception as e:
+            print(f"Error adding points to text: {e}")
+
+    # Check if 'momentum_indicator' is specified in the configuration
+    if ("momentum_indicator" in chart_config.keys()) and chart_config['momentum_indicator']:
+        try:
+            # Loop through the momentum indicator colors
+            for j in range(len(chart_config["momentum_indicator_colors"])):
+                # Generate momentum data
+                momentum_data = generate_momentum(chart_data, data["momentum_indicator"], j)
+                # Set the color for the momentum line
+                kwargs["line"]["color"] = chart_config["momentum_indicator_colors"][j]
+                # Create the chart with the momentum data
+                chart = create_chart(chart_type, momentum_data, **kwargs)
+                charts.append(chart)  # Append the chart to the list
+
+        except Exception as e:
+            print(f"Error generating momentum indicators: {e}")
+
+    # Check if 'min_max' is specified in the configuration
+    elif ("min_max" in chart_config.keys()) and chart_config['min_max']:
+        try:
+            # Loop for min and max calculations
+            for j in range(2):
+                # Calculate min/max data based on the current iteration
+                min_max_data = np.minimum(chart_data, 8) if j == 0 else np.maximum(chart_data, 8)
+                # Set the fill color for the min/max chart
+                kwargs["fillcolor"] = chart_config["min_max_colors"][j]
+                # Create the chart with min/max data
+                chart = create_chart(chart_type, min_max_data, **kwargs)
+                charts.append(chart)  # Append the chart to the list
+
+        except Exception as e:
+            print(f"Error processing min/max data: {e}")
+
+    # Check if 'add_legend' is specified in the configuration
+    elif ("add_legend" in chart_config.keys()) and chart_config['add_legend']:
+        try:
+            # Create a chart without specific data, just for legend
+            chart = create_chart(chart_type, None, **kwargs)
+            charts.append(chart)  # Append the legend chart to the list
+
+        except Exception as e:
+            print(f"Error adding legend chart: {e}")
+
+    else:
+        # If none of the specific conditions are met, create a standard chart
+        try:
+            chart = create_chart(chart_type, chart_data, **kwargs)
+            charts.append(chart)  # Append the chart to the list
+
+        except Exception as e:
+            print(f"Error creating standard chart: {e}")
+
+# Return the list of created charts
+return charts
+
+
+
+------ add recession interval
+# Convert recession intervals to a list of tuples with datetime objects
+try:
+    recession_intervals = [
+        (pd.to_datetime(start), pd.to_datetime(end)) 
+        for start, end in recession_intervals 
+        if isinstance(start, str) and isinstance(end, str)
+    ]
+except Exception as e:
+    print(f"Error converting recession intervals to datetime: {e}")
+    recession_intervals = []  # Initialize as empty if an error occurs
+
+# Filter recession intervals based on the specified date range
+try:
+    recession_intervals = [
+        (max(start_date, start), min(end_date, end)) 
+        for start, end in recession_intervals 
+        if start <= end_date and end > start_date
+    ]
+except Exception as e:
+    print(f"Error filtering recession intervals: {e}")
+    recession_intervals = []  # Reset to empty if filtering fails
+
+# Add vertical rectangles to the figure for each recession interval
+for start, end in recession_intervals:
+    try:
+        fig.add_vrect(
+            x0=start, 
+            x1=end, 
+            fillcolor="#EBE700", 
+            layer="below", 
+            line_width=8
+        )
+    except Exception as e:
+        print(f"Error adding vertical rectangle for interval ({start}, {end}): {e}")
+
+# Return the updated figure
+return fig
+
+
+
+
+--------- generate plot from config
+
+# Initialize an empty list to hold the charts
+charts = []
+
+# Load the chart configuration details
+config = chart_details
+
+# Check if the configuration indicates the use of subplots
+is_subplot = config.get('is_subplot')
+
+# Iterate over each chart configuration in the traces
+for chart_config in config['traces']:
+    try:
+        # Check if the chart configuration is a list (indicating multiple sub-charts)
+        if isinstance(chart_config, list):
+            # Create charts for each sub-chart configuration
+            sub_charts = [
+                create_chart_from_config(sub_chart_config, data) 
+                for sub_chart_config in chart_config
+            ]
+            # Flatten the list of sub-charts
+            sub_charts = [chart for sublist in sub_charts for chart in (sublist if isinstance(sublist, list) else [sublist])]
+            # Append the flattened sub-charts to the main charts list
+            charts.append(sub_charts)
+        
+        else:
+            # Create a single chart from the configuration
+            chart = create_chart_from_config(chart_config, data)
+            charts.append(chart)  # Append the chart to the list
+
+    except Exception as e:
+        print(f"Error processing chart configuration: {e}")
+
+# Load additional layout parameters, if any
+kwargs = config["layout"].get('kwargs', {})
+
+# Check for subplot layout parameters if subplots are being used
+subplot = config.get("subplot_layout").get("kwargs") if is_subplot else None
+
+# Create multiple traces in the figure based on the charts
+try:
+    fig = create_multiple_traces(
+        charts=charts,
+        is_subplot=is_subplot,
+        subplot_layout=subplot,
+        **kwargs
+    )
+except Exception as e:
+    print(f"Error creating multiple traces: {e}")
+    fig = None  # Initialize fig as None if an error occurs
+
+# Add recession intervals if specified in the data and configuration
+if ("recession_interval" in data) and config.get('recession_interval'):
+    start_date = end_date = pd.Timestamp.now()  # Initialize start and end dates
+
+    # Iterate over each key-value pair in the data
+    for key, series in data.items():
+        try:
+            if key != "recession_interval":
+                min_date = min(series.index)  # Get the minimum date in the series
+                max_date = max(series.index)  # Get the maximum date in the series
+                start_date = min(min_date, start_date)  # Update the overall start date
+                end_date = max(max_date, end_date)      # Update the overall end date
+
+        except Exception as e:
+            print(f"Error processing series '{key}': {e}")
+
+    # Attempt to add recession intervals to the figure
+    try:
+        fig = add_recession_intervals(
+            start_date=start_date,
+            end_date=end_date,
+            recession_intervals=data["recession_interval"],
+            fig=fig
+        )
+    except Exception as e:
+        print(f"Error adding recession intervals: {e}")
+
+# Return the final figure
+return fig
