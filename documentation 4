@@ -1,0 +1,85 @@
+import pandas as pd
+
+def order_dataframe(dataframe: pd.DataFrame, 
+                    column_name: str, 
+                    order_list: list, 
+                    filter_column: list = None) -> pd.DataFrame:
+    """
+    Order and filter data based on the given list for a specified column.
+
+    Args:
+        dataframe (pd.DataFrame): The dataframe that needs to be filtered and ordered.
+        column_name (str): The name of the column to order and filter based on `order_list`.
+        order_list (list): The list of values to filter and order the `column_name` by.
+        filter_column (Optional, list): List of columns to return after ordering. 
+                                        Default is None, meaning all columns are returned.
+
+    Returns:
+        pd.DataFrame: Returns the filtered and ordered dataframe.
+    """
+
+    # Step 1: Filter the dataframe to include only rows where the `column_name` is in the `order_list`.
+    dataframe = dataframe[dataframe[column_name].isin(order_list)]
+
+    # Step 2: Convert the `column_name` to a categorical data type with the order specified in `order_list`.
+    dataframe[column_name] = pd.Categorical(dataframe[column_name], categories=order_list, ordered=True)
+
+    # Step 3: Sort the dataframe based on the `column_name` (which is now ordered by `order_list`).
+    dataframe = dataframe.sort_values(by=column_name).reset_index(drop=True)
+
+    # Step 4: Return the dataframe with only the columns specified in `filter_column` if provided.
+    return dataframe[filter_column] if filter_column is not None else dataframe
+
+
+
+
+
+
+
+import unittest
+import pandas as pd
+
+class TestOrderDataFrame(unittest.TestCase):
+    
+    def setUp(self):
+        # Sample dataframe for testing
+        self.data = {
+            'date': ['2024-01-02', '2024-01-03', '2024-01-01', '2024-01-04'],
+            'value': [10, 20, 30, 40]
+        }
+        self.df = pd.DataFrame(self.data)
+        
+    def test_order_dataframe(self):
+        # Expected order list
+        order_list = ['2024-01-01', '2024-01-02', '2024-01-03']
+        
+        # Test the function without filter_column (return all columns)
+        result_df = order_dataframe(self.df, 'date', order_list)
+        
+        # Check if the result is in the correct order
+        expected_data = {
+            'date': ['2024-01-01', '2024-01-02', '2024-01-03'],
+            'value': [30, 10, 20]
+        }
+        expected_df = pd.DataFrame(expected_data).reset_index(drop=True)
+        
+        pd.testing.assert_frame_equal(result_df, expected_df)
+        
+    def test_order_dataframe_with_filter(self):
+        # Expected order list
+        order_list = ['2024-01-01', '2024-01-02', '2024-01-03']
+        
+        # Test the function with filter_column (only return 'date' column)
+        result_df = order_dataframe(self.df, 'date', order_list, filter_column=['date'])
+        
+        # Expected result (only 'date' column)
+        expected_data = {
+            'date': ['2024-01-01', '2024-01-02', '2024-01-03']
+        }
+        expected_df = pd.DataFrame(expected_data).reset_index(drop=True)
+        
+        pd.testing.assert_frame_equal(result_df, expected_df)
+
+if __name__ == '__main__':
+    unittest.main()
+
