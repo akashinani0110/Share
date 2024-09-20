@@ -1,0 +1,153 @@
+import pandas as pd
+
+def get_metadata_info(category: str, name: str) -> list:
+    """
+    Retrieves metadata information based on a category and name search.
+    
+    Args:
+        category (str): The category of the metadata to retrieve.
+        name (str): The name to search for in the metadata.
+    
+    Returns:
+        list: The metadata information that matches the given search criteria.
+    """
+    try:
+        # Retrieve the metadata description for the given category from session_state
+        metadata_description = st.session_state["metadata_description"].get(category)
+        
+        # If no metadata description is found for the given category, return an empty list
+        if metadata_description is None:
+            return []
+
+        # Get the name of the metadata table from the metadata description
+        metadata_table = metadata_description.get("metadata")
+
+        # Get the search column (column to filter by name) from the metadata description
+        search_column = metadata_description.get("search_column")
+
+        # Get the return columns (columns that should be returned) from the metadata description
+        return_columns = metadata_description.get("return_columns")
+
+        # Define conditions for the search query as a list of tuples
+        # The tuple structure is (column_name, operator, value)
+        conditions = [(search_column, "=", name)]
+
+        # Generate a SQL query to retrieve the filtered metadata based on conditions
+        filtered_df = generate_sql_query(
+            table_name=metadata_table,          # Table name
+            select_columns=return_columns,      # Columns to return
+            conditions=conditions                # Conditions for filtering
+        )
+        
+        # Convert the filtered DataFrame to a list of dictionaries and return it
+        return filtered_df.to_dict(orient='records') if isinstance(filtered_df, pd.DataFrame) else []
+
+    except KeyError as e:
+        # Handle case where expected keys are not found in session state
+        raise ValueError(f"Missing expected key in session state: {e}")
+    
+    except Exception as e:
+        # Handle any other exceptions that may occur
+        raise ValueError(f"An error occurred while retrieving metadata information: {e}")
+
+
+
+import pandas as pd
+from datetime import timedelta
+
+def filter_time_series(data: pd.Series, 
+                       start_date: str = None, 
+                       end_date: str = None, 
+                       time_period: int = None, 
+                       end_date_option: str = "End of last month", 
+                       set_sidebar: bool = True) -> pd.Timestamp:
+    """
+    Filters the time series data by a given date range.
+    
+    Args:
+        data (pd.Series): Time series data to be filtered.
+        start_date (str, optional): Start date in the format 'YYYY-MM-DD'. Default is None.
+        end_date (str, optional): End date in the format 'YYYY-MM-DD'. Default is None.
+        time_period (int, optional): Time period in days. Default is None.
+        end_date_option (str, optional): Option to set the end date. Can be 'CHA end date' or 'End of last month'.
+        set_sidebar (bool, optional): Whether to set the sidebar with start and end dates. Default is True.
+
+    Returns:
+        Tuple[pd.Timestamp, pd.Timestamp]: Returns the filtered start and end date.
+    """
+    try:
+        # Determine the start date
+        if start_date is None:
+            s_d = data.index.min()  # If no start date is provided, use the earliest date in the data
+        else:
+            s_d = pd.to_datetime(start_date)  # Convert start_date to datetime
+
+        # Determine the end date
+        if end_date is None:
+            if "CHA" in end_date_option:  # Check if "CHA" is part of the end_date_option
+                e_d = pd.to_datetime(st.session_state.get("cma_end_date", data.index.max()))  # Use session state "cma_end_date"
+            else:
+                e_d = data.index.max()  # Use the latest date in the data if no end date is given
+        else:
+            e_d = pd.to_datetime(end_date) if pd.to_datetime(end_date) < data.index.max() else data.index.max()  # Ensure the end date is not beyond the available data
+
+        # Adjust start date if a time period is provided
+        if time_period is not None:
+            s_d = e_d - timedelta(days=time_period * 365)  # Subtract the time period (converted to days) from the end date
+
+        # Set sidebar dates if required
+        if set_sidebar:
+            set_sidebar_date(s_d, e_d)  # Assuming set_sidebar_date is defined elsewhere to handle sidebar interaction
+
+        return s_d, e_d  # Return the filtered start and end dates
+
+    except Exception as e:
+        raise ValueError(f"Error occurred while filtering the time-series: {e}")
+
+
+
+import unittest
+import pandas as pd
+from datetime import datetime
+
+# Assuming filter_time_series is in your_module
+from your_module import filter_time_series
+
+class TestFilterTimeSeries(unittest.TestCase):
+    
+    def setUp(self):
+        # Create a sample time series data with a date index
+        dates = pd.date_range(start="2022-01-01", periods=100, freq="D")
+        values = range(100)
+        self.data = pd.Series(values, index=dates)
+    
+    def test_filter_with_start_and_end_date(self):
+        # Test case with start and end date
+        start_date = "2022-02-01"
+        end_date = "2022-03-01"
+        s_d, e_d = filter_time_series(self.data, start_date=start_date, end_date=end_date)
+        
+        # Assert start and end dates are correct
+        self.assertEqual(s_d, pd.to_datetime(start_date))
+        self.assertEqual(e_d, pd.to_datetime(end_date))
+    
+    def test_filter_with_time_period(self):
+        # Test case with a time period
+        end_date = "2022-04-10"
+        time_period = 1  # 1 year
+        s_d, e_d = filter_time_series(self.data, end_date=end_date, time_period=time_period)
+        
+        # Assert that the end date is correct and start date is 1 year before the end date
+        self.assertEqual(e_d, pd.to_datetime(end_date))
+        self.assertEqual(s_d, pd.to_datetime("2021-04-10"))
+    
+    def test_filter_with_no_dates(self):
+        # Test case with no dates provided (should default to full range)
+        s_d, e_d = filter_time_series(self.data)
+        
+        # Assert it picks the min and max of the data's date range
+        self.assertEqual(s_d, self.data.index.min())
+        self.assertEqual(e_d, self.data.index.max())
+
+if __name__ == '__main__':
+    unittest.main()
