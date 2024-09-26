@@ -1,0 +1,131 @@
+import pystore
+import pandas as pd
+
+# Step 1: Set up a PyStore path (optional)
+pystore.set_path('path_to_your_store')
+
+# Step 2: Connect to your store
+store = pystore.store('mystore')
+
+# Step 3: Access the collection in the store
+collection = store.collection('mycollection')
+
+# Step 4: Retrieve all items from the collection
+items = collection.list_items()
+
+# Step 5: Initialize an empty DataFrame to merge into
+combined_df = pd.DataFrame()
+
+# Step 6: Iterate through the items and merge them into the combined DataFrame
+for item_name in items:
+    # Load the item and convert it to a DataFrame
+    item = collection.item(item_name)
+    df = item.to_pandas()
+    
+    # Ensure the DataFrame is indexed by date (assuming it's time series)
+    df = df.set_index('date')  # Replace 'date' with the actual date column name if necessary
+    
+    # Rename the main value column to the item_name (or another column name you prefer)
+    df = df.rename(columns={'value': item_name})  # Replace 'value' with the actual value column name
+    
+    # Merge the new time series DataFrame into the combined DataFrame
+    combined_df = pd.merge(combined_df, df[item_name], left_index=True, right_index=True, how='outer')
+
+# Step 7: Replace missing data with None
+combined_df = combined_df.where(pd.notnull(combined_df), None)
+
+# Step 8: Print or use the combined DataFrame
+print(combined_df.head())
+
+
+
+import unittest
+from unittest.mock import MagicMock
+import pandas as pd
+import pystore
+
+# Function to combine time series data from a PyStore collection
+def combine_timeseries_to_dataframe(store_name, collection_name):
+    # Access the store
+    store = pystore.store(store_name)
+
+    # Access the collection
+    collection = store.collection(collection_name)
+
+    # Retrieve all items from the collection
+    items = collection.list_items()
+
+    # Initialize an empty DataFrame to merge into
+    combined_df = pd.DataFrame()
+
+    # Iterate through the items and merge them into the combined DataFrame
+    for item_name in items:
+        # Load the item and convert it to a DataFrame
+        item = collection.item(item_name)
+        df = item.to_pandas()
+
+        # Ensure the DataFrame is indexed by date (assuming it's time series)
+        df = df.set_index('date')  # Replace 'date' with the actual date column name if necessary
+
+        # Rename the main value column to the item_name (or another column name you prefer)
+        df = df.rename(columns={'value': item_name})  # Replace 'value' with the actual value column name
+
+        # Merge the new time series DataFrame into the combined DataFrame
+        combined_df = pd.merge(combined_df, df[item_name], left_index=True, right_index=True, how='outer')
+
+    # Replace missing data with None
+    combined_df = combined_df.where(pd.notnull(combined_df), None)
+
+    return combined_df
+
+
+# Unit test for the combine_timeseries_to_dataframe function
+class TestCombineTimeseriesToDataFrame(unittest.TestCase):
+
+    def setUp(self):
+        # Mock the pystore store and collection
+        self.mock_store = MagicMock()
+        self.mock_collection = MagicMock()
+
+        # Mock the pystore store function to return the mocked store
+        pystore.store = MagicMock(return_value=self.mock_store)
+        self.mock_store.collection = MagicMock(return_value=self.mock_collection)
+
+        # Sample time series data
+        self.data1 = pd.DataFrame({
+            'date': pd.to_datetime(['2023-01-01', '2023-01-02']),
+            'value': [100, 200]
+        })
+        self.data2 = pd.DataFrame({
+            'date': pd.to_datetime(['2023-01-02', '2023-01-03']),
+            'value': [300, 400]
+        })
+
+        # Mock the collection's list_items method
+        self.mock_collection.list_items = MagicMock(return_value=['timeseries1', 'timeseries2'])
+
+        # Mock the items' to_pandas method
+        mock_item1 = MagicMock()
+        mock_item2 = MagicMock()
+        mock_item1.to_pandas = MagicMock(return_value=self.data1)
+        mock_item2.to_pandas = MagicMock(return_value=self.data2)
+
+        # Mock the collection's item method to return the mocked items
+        self.mock_collection.item = MagicMock(side_effect=[mock_item1, mock_item2])
+
+    def test_combine_timeseries(self):
+        # Call the function to combine the time series data
+        result = combine_timeseries_to_dataframe('mystore', 'mycollection')
+
+        # Expected DataFrame
+        expected_df = pd.DataFrame({
+            'date': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03']),
+            'timeseries1': [100, 200, None],
+            'timeseries2': [None, 300, 400]
+        }).set_index('date')
+
+        # Check if the result matches the expected DataFrame
+        pd.testing.assert_frame_equal(result, expected_df)
+
+if __name__ == '__main__':
+    unittest.main()
