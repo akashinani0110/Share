@@ -1,0 +1,101 @@
+# validateDate: A function to check if the provided date is after a specific year and month.
+# Parameters:
+#   date: A string representing the date in "Month Year" format (e.g., "March 2023").
+#   year: The year to compare against (default is 2023).
+#   month: The month to compare against, represented as an integer (default is March, 3).
+# Returns:
+#   result: A boolean value (TRUE if the date is after the specified year and month, FALSE otherwise).
+
+validateDate <- function(date, year = 2023, month = 3) {
+  
+  # Split the input date string into parts (month and year) based on space.
+  dateParts <- strsplit(date, " ")[[1]]
+  
+  # Extract the year part from the split date and convert it to an integer.
+  date_year <- as.integer(dateParts[2])
+  
+  # Extract the month part from the split date, match it to month.name (built-in R vector of month names),
+  # and convert it to a numeric value representing the month.
+  date_month <- match(dateParts[1], month.name)
+  
+  # Check if the date is after the specified year and month.
+  if (date_year > year || (date_year == year && date_month > month)) {
+    result <- TRUE  # The date is after the specified year and month.
+  } else {
+    result <- FALSE  # The date is not after the specified year and month.
+  }
+  
+  # Return the result of the comparison.
+  return(result)
+}
+
+# Example usage:
+# validateDate("April 2023")  # Should return TRUE, since April is after March 2023.
+# validateDate("February 2023")  # Should return FALSE, since February is before March 2023.
+
+
+
+--------------
+
+
+
+# insert_differences: A function to calculate differences between two data frames (df1 and df2)
+# and insert those differences into specific columns of df1.
+# Parameters:
+#   df1: The first data frame.
+#   df2: The second data frame, assumed to have the same or fewer rows/columns than df1.
+# Returns:
+#   df1: The modified first data frame with the calculated differences inserted.
+# Note: This function assumes specific index patterns for the columns (e.g., every 4th and 6th column).
+insert_differences <- function(df1, df2) {
+
+  # Select the indexes for columns in df1 where differences will be inserted (every 4th column).
+  indexes <- seq(4, ncol(df1), by = 6)
+  
+  # Select the indexes for the columns in df1 where the replacements will happen (every 6th column).
+  replace_indexes <- seq(6, ncol(df1), by = 6)
+
+  # Loop over each index in 'indexes' to process differences between df1 and df2.
+  for (i in indexes) {
+    
+    row_diff <- 0  # Initialize row difference variable.
+    
+    # If df2 has more rows than df1, trim the excess rows from df2.
+    if (nrow(df1) < nrow(df2)) {
+      df2 <- df2[c(1:2, (3 + nrow(df2) - nrow(df1)):nrow(df2)), ]
+    }
+    
+    # If df1 has more rows than df2, calculate row difference and adjust df1 accordingly.
+    if (nrow(df1) > nrow(df2)) {
+      row_diff <- nrow(df1) - nrow(df2)
+      temp_df1 <- df1[c(1:2, (3 + row_diff):nrow(df1)), ]
+    }
+    
+    # Calculate differences if there is a row mismatch between df1 and df2.
+    if (row_diff > 0) {
+      difference <- as.numeric(gsub("%", "", temp_df1[, i])) - as.numeric(gsub("%", "", df2[, i]))
+      
+      # Adjust the difference vector length by adding NA for missing rows.
+      difference <- c(difference[1:2], rep(NA, row_diff), difference[3:length(difference)])
+    } else {
+      # Calculate differences without adjusting rows if no mismatch exists.
+      difference <- as.numeric(gsub("%", "", df1[, i])) - as.numeric(gsub("%", "", df2[, i]))
+    }
+    
+    # Check for any rounding errors or missing values and adjust differences accordingly.
+    if (any(round(is.na(difference), 2) == is.na(difference))) {
+      difference <- ifelse(is.na(difference), round(is.na(difference), 2), difference)
+    }
+    
+    # Insert the calculated differences into the appropriate column in df1.
+    df1[, replace_indexes[which(indexes == i)]] <- ifelse(!is.na(difference), paste0(as.numeric(difference), "%"), difference)
+  }
+
+  # Return the modified data frame with differences inserted.
+  return(df1)
+}
+
+# Example usage:
+# df1 <- data.frame(col1 = c("10%", "20%", "30%"), col2 = c("40%", "50%", "60%"))
+# df2 <- data.frame(col1 = c("15%", "25%", "35%"), col2 = c("45%", "55%", "65%"))
+# insert_differences(df1, df2)
