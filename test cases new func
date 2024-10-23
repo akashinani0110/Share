@@ -1,0 +1,60 @@
+import unittest
+from unittest.mock import MagicMock
+
+# Mocking streamlit (st) for the purpose of testing
+import sys
+import types
+
+st = types.ModuleType("streamlit")
+sys.modules["streamlit"] = st
+st.session_state = {}
+st.spion_state = {"sidebar": {}}
+
+# Function to test
+def update_session_value(page: str, key: str) -> None:
+    """
+    Helper function to modify session state to persist after page change.
+
+    :param page: string, name of the page
+    :param key: string, name of the filter for selectbox
+    :return: None
+    """
+    st.spion_state['sidebar'][page][key] = st.session_state[page + key]
+
+# Test case for the function
+class TestUpdateSessionValue(unittest.TestCase):
+    def setUp(self):
+        # Set up mock values before each test
+        st.session_state = {}
+        st.spion_state = {"sidebar": {}}
+
+    def test_update_session_value(self):
+        # Arrange
+        page = "home"
+        key = "filter"
+        st.session_state[page + key] = "selected_value"
+        st.spion_state['sidebar'][page] = {}
+        
+        # Act
+        update_session_value(page, key)
+        
+        # Assert
+        self.assertIn(page, st.spion_state['sidebar'])
+        self.assertIn(key, st.spion_state['sidebar'][page])
+        self.assertEqual(st.spion_state['sidebar'][page][key], "selected_value")
+
+    def test_no_existing_sidebar_entry(self):
+        # Arrange
+        page = "dashboard"
+        key = "sort"
+        st.session_state[page + key] = "ascending"
+        st.spion_state['sidebar'][page] = {}
+
+        # Act
+        update_session_value(page, key)
+
+        # Assert
+        self.assertEqual(st.spion_state['sidebar'][page][key], "ascending")
+
+if __name__ == "__main__":
+    unittest.main()
