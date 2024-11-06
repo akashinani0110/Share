@@ -1,0 +1,84 @@
+import plotly.graph_objects as go
+
+# Define the content list for the slides
+content_list = [
+    {"type": "header", "content": "Main Header"},
+    {"type": "subheader", "content": "Sub Header", "list": ["First item in the list", "Second item", "Third item"]},
+    {"type": "chart", "content": "Sample Plotly Chart"},
+    {"type": "footnote", "content": "This is a footnote with additional information."}
+]
+
+# Generate a Plotly chart HTML if a chart type is included
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=[1, 2, 3, 4, 5], y=[10, 15, 13, 17, 10], mode='lines+markers', name='Sample Data'))
+fig.update_layout(title='Sample Plotly Chart')
+plot_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+# Start building the HTML structure with reveal.js
+html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Slide Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <style>
+        .footnote {{ font-size: 0.9em; color: #777; }}
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+"""
+
+# Loop through the content list to create slides based on content type
+for item in content_list:
+    if item["type"] == "header":
+        html_content += f"""
+            <section>
+                <h1>{item['content']}</h1>
+            </section>
+        """
+    elif item["type"] == "subheader":
+        list_items = "".join(f"<li>{li}</li>" for li in item.get("list", []))
+        html_content += f"""
+            <section>
+                <h2>{item['content']}</h2>
+                <ul>{list_items}</ul>
+            </section>
+        """
+    elif item["type"] == "chart":
+        html_content += f"""
+            <section>
+                <div class="chart-container">
+                    {plot_html}
+                </div>
+            </section>
+        """
+    elif item["type"] == "footnote":
+        html_content += f"""
+            <section>
+                <div class="footnote">
+                    <p>{item['content']}</p>
+                </div>
+            </section>
+        """
+
+# Close the slides and HTML tags, and add the reveal.js initialization script
+html_content += """
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script>
+        Reveal.initialize();
+    </script>
+</body>
+</html>
+"""
+
+# Save the report as an HTML file
+with open("dynamic_slide_report.html", "w") as file:
+    file.write(html_content)
+
+print("Dynamic slide-based HTML report generated as 'dynamic_slide_report.html'")
