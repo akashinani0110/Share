@@ -1,0 +1,23 @@
+import streamlit as st
+import plotly.graph_objs as go
+import plotly.io as pio
+import base64
+
+# Generate sample Plotly charts
+chart1 = go.Figure(data=go.Bar(y=[2, 3, 1]))
+chart2 = go.Figure(data=go.Scatter(y=[1, 4, 9]))
+
+# Save charts to HTML strings
+charts = [chart1, chart2]
+html_charts = [pio.to_html(chart, full_html=False) for chart in charts]
+
+# Create an HTML report
+html_report = "<html><body>"
+for chart_html in html_charts:
+    html_report += chart_html + "<br>"
+html_report += "</body></html>"
+
+# Download link for the report
+b64 = base64.b64encode(html_report.encode()).decode()
+href = f'<a href="data:text/html;base64,{b64}" download="plotly_report.html">Download Report</a>'
+st.markdown(href, unsafe_allow_html=True)
