@@ -1,0 +1,98 @@
+import streamlit as st
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.io as pio
+import base64
+
+# Define the content list for the sections on the HTML page
+content_list = [
+    {"type": "header", "content": "Main Header"},
+    {"type": "subheader", "content": "Sub Header", "list": ["First item in the list", "Second item", "Third item"]},
+    {"type": "chart", "content": "Sample Plotly Subplots"},
+    {"type": "footnote", "content": "This is a footnote with additional information."}
+]
+
+# Create a subplot with two charts side-by-side
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Left Plot", "Right Plot"))
+
+# Add data to the first subplot
+fig.add_trace(
+    go.Scatter(x=[1, 2, 3, 4, 5], y=[10, 15, 13, 17, 10], mode='lines+markers', name='Left Data'),
+    row=1, col=1
+)
+
+# Add data to the second subplot
+fig.add_trace(
+    go.Bar(x=[1, 2, 3, 4, 5], y=[10, 11, 12, 13, 14], name='Right Data'),
+    row=1, col=2
+)
+
+# Update the layout of the figure
+fig.update_layout(title_text="Sample Plotly Subplots")
+
+# Capture the HTML for the subplot figure
+plot_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+
+# Start building the HTML content
+html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic HTML Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin-bottom: 20px; }
+        .footnote { font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+"""
+
+# Loop through content list to add sections based on content type
+for item in content_list:
+    if item["type"] == "header":
+        html_content += f"""
+            <div class="section">
+                <h1>{item['content']}</h1>
+            </div>
+        """
+    elif item["type"] == "subheader":
+        list_items = "".join(f"<li>{li}</li>" for li in item.get("list", []))
+        html_content += f"""
+            <div class="section">
+                <h2>{item['content']}</h2>
+                <ul>{list_items}</ul>
+            </div>
+        """
+    elif item["type"] == "chart":
+        html_content += f"""
+            <div class="section">
+                <h2>{item['content']}</h2>
+                <div class="chart-container">
+                    {plot_html}
+                </div>
+            </div>
+        """
+    elif item["type"] == "footnote":
+        html_content += f"""
+            <div class="section footnote">
+                <p>{item['content']}</p>
+            </div>
+        """
+
+# Close the HTML tags
+html_content += """
+</body>
+</html>
+"""
+
+# Encode HTML content to base64 for download link
+b64 = base64.b64encode(html_content.encode()).decode()
+
+# Create a download link
+download_link = f'<a href="data:text/html;base64,{b64}" download="dynamic_html_report_with_subplots.html">Download HTML Report</a>'
+
+# Display the download link in Streamlit
+st.markdown(download_link, unsafe_allow_html=True)
