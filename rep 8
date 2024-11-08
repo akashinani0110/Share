@@ -1,0 +1,89 @@
+from plotly.io import to_html
+import streamlit as st
+
+def generate_html_slides(slide_data):
+    """
+    Generate an HTML report in slides format, each with a header, logo, chart, and footnote.
+    
+    Parameters:
+    slide_data (list of dicts): A list where each dict represents a slide with keys:
+        - 'header': Header text for the slide
+        - 'chart': Plotly chart object
+        - 'logo_url': URL for the logo image
+        - 'footnote': Text for the footnote
+    
+    Returns:
+    str: HTML string with all slides formatted
+    """
+    slides_html = ""
+    
+    for i, slide in enumerate(slide_data, start=1):
+        header = slide.get('header', 'Header')
+        chart = slide['chart']
+        logo_url = slide.get('logo_url', '')
+        footnote = slide.get('footnote', '')
+
+        # Convert Plotly chart to HTML
+        chart_html = to_html(chart, full_html=False, include_plotlyjs='cdn')
+        
+        # HTML for each slide
+        slide_html = f"""
+        <div style="padding: 20px; width: 100%; border-bottom: 1px solid #ddd; page-break-after: always;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0;">{header}</h2>
+                <img src="{logo_url}" alt="Logo" style="height: 50px;">
+            </div>
+            <div style="margin-top: 20px;">
+                {chart_html}
+            </div>
+            <div style="margin-top: 10px; font-size: 0.9em; color: #555;">
+                <p>{footnote}</p>
+            </div>
+        </div>
+        """
+        
+        slides_html += slide_html
+    
+    # Wrapping slides in a scrollable div
+    full_html = f"""
+    <html>
+    <head><title>Report</title></head>
+    <body style="font-family: Arial, sans-serif;">
+        <div style="overflow-y: scroll; height: 100vh; padding: 20px;">
+            {slides_html}
+        </div>
+    </body>
+    </html>
+    """
+    return full_html
+
+# Streamlit code
+import streamlit as st
+from plotly import graph_objs as go
+
+# Create sample Plotly charts
+chart1 = go.Figure(go.Scatter(x=[1, 2, 3], y=[10, 15, 13]))
+chart2 = go.Figure(go.Bar(x=[1, 2, 3], y=[10, 15, 13]))
+
+# Prepare slide data
+slides = [
+    {"header": "Slide 1", "chart": chart1, "logo_url": "https://via.placeholder.com/150", "footnote": "Footnote for slide 1"},
+    {"header": "Slide 2", "chart": chart2, "logo_url": "https://via.placeholder.com/150", "footnote": "Footnote for slide 2"}
+]
+
+# Generate HTML slides
+html_content = generate_html_slides(slides)
+
+# Save HTML content to file
+html_file_path = "/mnt/data/report.html"
+with open(html_file_path, "w") as file:
+    file.write(html_content)
+
+# Display download link in Streamlit
+st.success("Report generated successfully!")
+st.download_button(
+    label="Download HTML Report",
+    data=html_content,
+    file_name="report.html",
+    mime="text/html"
+)
