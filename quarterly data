@@ -1,0 +1,29 @@
+# Load necessary libraries
+library(dplyr)
+library(lubridate)
+library(highcharter)
+
+# Sample monthly data
+set.seed(123)
+data <- data.frame(
+  date = seq.Date(from = as.Date("2023-01-01"), by = "month", length.out = 24),
+  value = runif(24, 100, 500)
+)
+
+# Convert to quarterly data
+quarterly_data <- data %>%
+  mutate(year = year(date), quarter = quarter(date)) %>%
+  group_by(year, quarter) %>%
+  summarise(quarterly_value = sum(value)) %>%
+  ungroup()
+
+# Highcharter bar chart
+highchart() %>%
+  hc_chart(type = "column") %>%
+  hc_title(text = "Quarterly Data") %>%
+  hc_xAxis(categories = paste(quarterly_data$year, "Q", quarterly_data$quarter, sep = "")) %>%
+  hc_yAxis(title = list(text = "Value")) %>%
+  hc_series(list(
+    name = "Quarterly Value",
+    data = quarterly_data$quarterly_value
+  ))
