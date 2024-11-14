@@ -1,0 +1,71 @@
+import streamlit as st
+import plotly.graph_objects as go
+
+# Function to create a Plotly chart for each slide (you can modify this as needed)
+def create_chart():
+    fig = go.Figure(go.Bar(x=[2025, 2030, 2035, 2040, 2045, 2050], y=[20, 15, 10, 10, 10, 10]))
+    fig.update_layout(
+        title="Expected Asset Returns Over Time",
+        xaxis_title="Year",
+        yaxis_title="Expected Returns (%)",
+        template="plotly_white"
+    )
+    return fig
+
+# HTML layout for slides with footnotes
+def slide_template(content, page_number):
+    return f"""
+    <div class="slide">
+        <div class="content">{content}</div>
+        <div class="footer">
+            <p class="source">Source: Chief Investment Office</p>
+            <p class="page-number">{page_number}</p>
+        </div>
+    </div>
+    """
+
+# Custom CSS for footer and page number
+custom_css = """
+    <style>
+        .slide {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .footer {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .source {
+            float: left;
+            margin-left: 10px;
+        }
+        .page-number {
+            float: right;
+            margin-right: 10px;
+        }
+    </style>
+"""
+
+# Display HTML and CSS in Streamlit
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# Example of creating multiple slides
+for page_number in range(1, 4):  # Adjust number of slides as needed
+    content = f"<div>{st.plotly_chart(create_chart(), use_container_width=True)}</div>"
+    slide_html = slide_template(content, f"{page_number}/3")
+    st.markdown(slide_html, unsafe_allow_html=True)
