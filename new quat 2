@@ -1,0 +1,47 @@
+# Load necessary library
+library(highcharter)
+
+# Sample data
+data <- data.frame(
+  Year = c(2021, 2021, 2021, 2021, 2022, 2022, 2022, 2022, 2023, 2023, 2023, 2023),
+  Quarter = c("Q1", "Q2", "Q3", "Q4", "Q1", "Q2", "Q3", "Q4", "Q1", "Q2", "Q3", "Q4"),
+  Value = c(5000, 7000, 6000, 8000, 9000, 8500, 7500, 9500, 10000, 11000, 10500, 12000)
+)
+
+# Prepare x-axis categories
+x_categories <- list(
+  categories = list(
+    list(name = "2021", categories = c("Q1", "Q2", "Q3", "Q4")),
+    list(name = "2022", categories = c("Q1", "Q2", "Q3", "Q4")),
+    list(name = "2023", categories = c("Q1", "Q2", "Q3", "Q4"))
+  )
+)
+
+# Prepare series data
+series <- list(
+  list(
+    name = "Transactions",
+    data = data$Value
+  )
+)
+
+# Create the chart
+highchart() %>%
+  hc_chart(type = "column") %>%
+  hc_xAxis(
+    type = "category",
+    categories = x_categories,
+    title = list(text = "Year and Quarter")
+  ) %>%
+  hc_yAxis(
+    title = list(text = "Number of Transactions")
+  ) %>%
+  hc_plotOptions(
+    column = list(
+      grouping = FALSE,  # Avoid grouping within the same x-axis group
+      dataLabels = list(enabled = TRUE)  # Optional: Show values on top of bars
+    )
+  ) %>%
+  hc_add_series_list(series) %>%
+  hc_title(text = "Transactions by Quarter and Year") %>%
+  hc_subtitle(text = "Grouped by Year and Quarter")
