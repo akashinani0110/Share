@@ -1,0 +1,38 @@
+# Load necessary library
+library(highcharter)
+
+# Sample data
+data <- data.frame(
+  Year = c(2021, 2021, 2021, 2021, 2022, 2022, 2022, 2022),
+  Quarter = c("Q1", "Q2", "Q3", "Q4", "Q1", "Q2", "Q3", "Q4"),
+  Value = c(50, 70, 60, 80, 90, 85, 75, 95)
+)
+
+# Format the data for Highcharter
+categories <- unique(data$Year)
+subcategories <- unique(data$Quarter)
+series_data <- lapply(categories, function(year) {
+  list(
+    name = year,
+    data = as.numeric(data$Value[data$Year == year])
+  )
+})
+
+# Create the Highcharter plot
+highchart() %>%
+  hc_chart(type = "column") %>%
+  hc_xAxis(
+    categories = subcategories,
+    title = list(text = "Quarters")
+  ) %>%
+  hc_yAxis(
+    title = list(text = "Value")
+  ) %>%
+  hc_plotOptions(
+    column = list(
+      grouping = TRUE
+    )
+  ) %>%
+  hc_add_series_list(series_data) %>%
+  hc_title(text = "Yearly Data with Quarterly Subgroups") %>%
+  hc_subtitle(text = "Grouped by Year and Quarter")
