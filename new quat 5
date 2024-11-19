@@ -1,0 +1,70 @@
+# Load necessary libraries
+library(highcharter)
+library(dplyr)
+
+# Sample data
+data <- data.frame(
+  Year = c(2021, 2021, 2021, 2021, 
+           2022, 2022, 2022, 2022,
+           2023, 2023, 2023, 2023),
+  Quarter = c("Q1", "Q2", "Q3", "Q4", 
+              "Q1", "Q2", "Q3", "Q4",
+              "Q1", "Q2", "Q3", "Q4"),
+  Value = c(50, 70, 60, 80, 
+            90, 85, 75, 95,
+            65, 78, 88, 102)
+)
+
+# Ensure Quarter is ordered correctly
+data$Quarter <- factor(data$Quarter, levels = c("Q1", "Q2", "Q3", "Q4"))
+
+# Extract unique quarters and years
+quarters <- levels(data$Quarter)
+years <- sort(unique(data$Year))
+
+# Prepare series data: Each year is a separate series
+series_data <- lapply(years, function(year) {
+  yearly_data <- data %>% 
+    filter(Year == year) %>% 
+    arrange(Quarter) %>% 
+    pull(Value)
+  
+  list(
+    name = as.character(year),
+    data = yearly_data
+  )
+})
+
+# Create the Highcharter plot
+highchart() %>%
+  hc_chart(type = "column") %>%
+  hc_title(text = "Quarterly Values Grouped by Year") %>%
+  hc_subtitle(text = "Columns represent different years within each quarter") %>%
+  hc_xAxis(
+    categories = quarters,
+    title = list(text = "Quarters"),
+    type = "category"
+  ) %>%
+  hc_yAxis(
+    min = 0,
+    title = list(text = "Value"),
+    allowDecimals = FALSE
+  ) %>%
+  hc_plotOptions(
+    column = list(
+      grouping = TRUE,
+      shadow = FALSE,
+      borderWidth = 0
+    )
+  ) %>%
+  hc_add_series_list(series_data) %>%
+  hc_tooltip(
+    headerFormat = "<b>{point.key}</b><br/>",
+    pointFormat = "{series.name}: {point.y}"
+  ) %>%
+  hc_legend(
+    align = "center",
+    verticalAlign = "bottom",
+    layout = "horizontal"
+  ) %>%
+  hc_colors(c("#7cb5ec", "#434348", "#90ed7d", "#f7a35c")) # Optional: Customize colors
