@@ -1,0 +1,74 @@
+import unittest
+import pandas as pd
+from datetime import datetime
+
+# Import the functions from the module
+# Assuming the module is named `pystore_app`
+# from pystore_app import load_data, convert_date_format, set_status, style_table, highlight_cells
+
+class TestPystoreApp(unittest.TestCase):
+
+    def setUp(self):
+        """Set up sample data for testing."""
+        self.sample_data = pd.DataFrame({
+            'Expected_End_Date': ['7/31/2024', 'e', '6/15/2023'],
+            'Actual_End_Date': ['7/31/2024', '', '6/15/2023']
+        })
+        self.empty_data = pd.DataFrame()
+
+    def test_load_data_valid_file(self):
+        """Test loading data from a valid file."""
+        # Provide a mock file path if required
+        file_path = "test.csv"
+        self.sample_data.to_csv(file_path)
+        result = load_data(file_path)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty)
+
+    def test_load_data_invalid_file(self):
+        """Test loading data from an invalid file."""
+        result = load_data("non_existent.csv")
+        self.assertTrue(result.empty)
+
+    def test_convert_date_format_valid(self):
+        """Test date conversion with valid data."""
+        data = pd.DataFrame({'Date': ['2023-11-20', '2024-01-01']})
+        result = convert_date_format(data, 'Date')
+        self.assertEqual(result['Date'].iloc[0], '11/20/2023')
+        self.assertEqual(result['Date'].iloc[1], '01/01/2024')
+
+    def test_convert_date_format_invalid(self):
+        """Test date conversion with invalid data."""
+        data = pd.DataFrame({'Date': ['invalid_date', '2024-01-01']})
+        result = convert_date_format(data, 'Date')
+        self.assertTrue(pd.isnull(result['Date'].iloc[0]))
+        self.assertEqual(result['Date'].iloc[1], '01/01/2024')
+
+    def test_set_status(self):
+        """Test setting the status for different scenarios."""
+        self.sample_data['Status'] = self.sample_data.apply(set_status, axis=1)
+        self.assertEqual(self.sample_data['Status'].iloc[0], 'On Track')
+        self.assertEqual(self.sample_data['Status'].iloc[1], 'Does Not Exist')
+        self.assertEqual(self.sample_data['Status'].iloc[2], 'On Track')
+
+    def test_highlight_cells(self):
+        """Test cell highlighting based on values."""
+        self.assertEqual(highlight_cells('On Track'), 'background-color: #279F00')
+        self.assertEqual(highlight_cells('Off Track'), 'background-color: #E31837')
+        self.assertEqual(highlight_cells('Does Not Exist'), 'background-color: #E31837')
+        self.assertEqual(highlight_cells('Unknown'), 'background-color: #FFD700')
+
+    def test_style_table(self):
+        """Test table styling."""
+        result = style_table(self.sample_data)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, pd.io.formats.style.Styler)
+
+    def test_style_table_empty(self):
+        """Test table styling with an empty dataframe."""
+        result = style_table(self.empty_data)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, pd.DataFrame)  # Styling may return the same empty dataframe
+
+if __name__ == "__main__":
+    unittest.main()
