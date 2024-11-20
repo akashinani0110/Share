@@ -1,0 +1,149 @@
+# Import necessary libraries
+import streamlit as st
+import pandas as pd
+import numpy as np
+import os
+import warnings
+from datetime import datetime
+from streamlit_extras.dataframe_explorer import dataframe_explorer
+
+# Ignore warnings
+warnings.simplefilter(action="ignore", category=UserWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
+warnings.simplefilter(action="ignore", category=DeprecationWarning)
+
+# Configure Streamlit page
+st.set_page_config(
+    layout="wide",
+    page_title="Pystore Data Overview",
+    page_icon="hofa.png"
+)
+
+# Utility Functions
+def load_data(file_path):
+    """Load metadata from a CSV file."""
+    try:
+        data = pd.read_csv(file_path, index_col=1)
+        return data
+    except Exception as e:
+        st.error(f"Error loading file: {e}")
+        return pd.DataFrame()
+
+def convert_date_format(df, column_name):
+    """
+    Convert date column to a specific format.
+    
+    Args:
+        df (pd.DataFrame): The dataframe containing the date column.
+        column_name (str): The name of the date column to be converted.
+    
+    Returns:
+        pd.DataFrame: Dataframe with converted date column.
+    """
+    try:
+        df[column_name] = pd.to_datetime(df[column_name], errors='coerce').dt.strftime('%m/%d/%Y')
+        return df
+    except Exception as e:
+        st.error(f"Error converting date format for {column_name}: {e}")
+        return df
+
+def set_status(row):
+    """
+    Set the status of each row based on Expected_End_Date and Actual_End_Date.
+
+    Args:
+        row (pd.Series): Row of the dataframe.
+
+    Returns:
+        str: Status of the project.
+    """
+    try:
+        if row["Expected_End_Date"] == '7/31/2024':
+            return "On Track"
+        elif row["Actual_End_Date"] == '':
+            return "Does Not Exist"
+        elif row["Expected_End_Date"] != row["Actual_End_Date"]:
+            return "Off Track"
+        else:
+            return "At Risk"
+    except KeyError as e:
+        st.error(f"Missing key: {e}")
+        return "Unknown"
+
+def style_table(df):
+    """
+    Apply custom styles to the table.
+
+    Args:
+        df (pd.DataFrame): The dataframe to be styled.
+
+    Returns:
+        Styler: Styled dataframe.
+    """
+    th_props = [
+        ('font-size', '16px'),
+        ('text-align', 'left'),
+        ('font-weight', 'bold'),
+        ('color', '#E5F5F5'),
+        ('background-color', '#012169')
+    ]
+    td_props = [
+        ('font-size', '14px'),
+        ('color', 'black')
+    ]
+    styles = [
+        dict(selector="th", props=th_props),
+        dict(selector="td", props=td_props)
+    ]
+    try:
+        return df.style.set_table_styles(styles).applymap(highlight_cells, subset=['Status'])
+    except Exception as e:
+        st.error(f"Error styling table: {e}")
+        return df
+
+def highlight_cells(val):
+    """
+    Highlight cells based on their value.
+
+    Args:
+        val (str): Cell value.
+
+    Returns:
+        str: CSS property for the cell.
+    """
+    color = '#279F00' if val == 'On Track' else '#E31837' if val in ['Off Track', 'Does Not Exist'] else '#FFD700'
+    return f'background-color: {color}'
+
+def main():
+    # Load metadata
+    file_path = "MetaData.csv"
+    metadata = load_data(file_path)
+
+    # Rename and process columns
+    if not metadata.empty:
+        metadata = metadata.rename(columns={"End Date": "Expected_End_Date"})
+        metadata["Expected_End_Date"] = metadata["Expected_End_Date"].apply(
+            lambda x: "7/31/2024" if x == 'e' else x
+        )
+        metadata["Actual_End_Date"] = pd.to_datetime(
+            metadata["Actual_End_Date"], errors='coerce'
+        ).dt.year.fillna("")
+
+        # Set project status
+        metadata["Status"] = metadata.apply(set_status, axis=1)
+
+        # Style the table
+        styled_metadata = style_table(metadata)
+        st.dataframe(styled_metadata)
+
+        # Data Explorer
+        try:
+            dataframe_explorer(metadata, case=False)
+        except Exception as e:
+            st.error(f"Error exploring dataframe: {e}")
+
+    else:
+        st.warning("No data to display!")
+
+if __name__ == "__main__":
+    main()
