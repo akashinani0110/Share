@@ -1,0 +1,74 @@
+from playwright.sync_api import sync_playwright
+
+def interact_with_streamlit_app(app_url):
+    """
+    Interact with a running Streamlit app dynamically by clicking tabs and buttons in real-time.
+    
+    :param app_url: The URL of the Streamlit app.
+    """
+    with sync_playwright() as p:
+        # Launch the browser (not headless for live interaction)
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+
+        # Open the Streamlit app URL
+        page.goto(app_url)
+
+        # Wait for the app to load
+        page.wait_for_load_state("networkidle")
+        print("App loaded. Interacting with the app...")
+
+        # Main loop to allow continuous interaction
+        while True:
+            print("\nAvailable actions:")
+            print("1. Click on a tab")
+            print("2. Click on a button")
+            print("3. Exit")
+            action = input("Enter the action number: ")
+
+            if action == "1":
+                # Locate all tabs
+                tabs = page.locator('div.stSidebar div.stLink button')
+                num_tabs = tabs.count()
+
+                if num_tabs == 0:
+                    print("No tabs found.")
+                else:
+                    print(f"Found {num_tabs} tabs.")
+                    tab_index = int(input(f"Enter tab index (1-{num_tabs}): ")) - 1
+                    if 0 <= tab_index < num_tabs:
+                        tabs.nth(tab_index).click()
+                        print(f"Clicked on tab {tab_index + 1}.")
+                    else:
+                        print("Invalid tab index.")
+            
+            elif action == "2":
+                # Locate all buttons on the current tab
+                buttons = page.locator('button')
+                num_buttons = buttons.count()
+
+                if num_buttons == 0:
+                    print("No buttons found.")
+                else:
+                    print(f"Found {num_buttons} buttons.")
+                    button_index = int(input(f"Enter button index (1-{num_buttons}): ")) - 1
+                    if 0 <= button_index < num_buttons:
+                        buttons.nth(button_index).click()
+                        print(f"Clicked button {button_index + 1}.")
+                    else:
+                        print("Invalid button index.")
+
+            elif action == "3":
+                print("Exiting interaction.")
+                break
+            else:
+                print("Invalid action. Please try again.")
+
+        # Close the browser
+        browser.close()
+
+# Example usage
+if __name__ == "__main__":
+    app_url = "http://localhost:8501"  # Replace with your app's actual URL
+    interact_with_streamlit_app(app_url)
