@@ -1,0 +1,31 @@
+Atmeage Overview:
+
+Activity focused on documenting data lineage for movement from GOPP to SDR.
+
+
+Key Benefits:
+
+Enhances traceability by linking data back to upstream systems in GOPP.
+
+Enables tracking of end-to-end lineage for specific systems.
+
+Verifies data accuracy and integrity.
+
+
+Core Features:
+
+Facilitates attestation of NFRs (Non-Functional Requirements).
+
+Supports compliance with regulatory requirements and audit trails.
+
+Aids in error identification and rectification.
+
+
+Business Impact:
+
+Builds trust and transparency in reporting processes.
+
+Strengthens data reliability, supporting data-driven decision-making.
+
+
+
