@@ -1,0 +1,29 @@
+import streamlit as st
+
+# Initialize session state
+if "show_password" not in st.session_state:
+    st.session_state.show_password = False
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# Function to toggle password box visibility
+def toggle_password_box():
+    st.session_state.show_password = not st.session_state.show_password
+
+# Function to validate password
+def validate_password():
+    if st.session_state.password == "your_password":  # Replace with your desired password
+        st.session_state.authenticated = True
+        st.session_state.show_password = False
+    else:
+        st.error("Incorrect password. Please try again.")
+
+# Main interface
+if not st.session_state.authenticated:
+    st.button("Enter Password", on_click=toggle_password_box)
+
+    if st.session_state.show_password:
+        st.text_input("Password", type="password", key="password")
+        st.button("Submit", on_click=validate_password)
+else:
+    st.success("Access granted!")
