@@ -1,0 +1,25 @@
+from playwright.sync_api import sync_playwright
+
+def click_asset_class_tab():
+    with sync_playwright() as p:
+        # Launch the browser
+        browser = p.chromium.launch(headless=False)  # Set to True for headless mode
+        context = browser.new_context()
+        page = context.new_page()
+
+        # Navigate to your Streamlit app
+        page.goto("http://localhost:8501")  # Replace with your actual app URL
+
+        # Wait for the sidebar to load
+        page.wait_for_selector('div[data-testid="stSidebarNav"]')
+
+        # Click on the "Asset Class" tab
+        page.locator('a[data-testid="stSidebarNavLink"] span:has-text("Asset classes")').click()
+
+        # Optional: Verify successful navigation by checking page content
+        print("Clicked on 'Asset classes' tab successfully!")
+
+        # Close the browser
+        browser.close()
+
+click_asset_class_tab()
