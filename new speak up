@@ -1,0 +1,10 @@
+Title: Automating Report Generation to Simplify Workflows
+
+Description:
+
+Generating reports from existing dashboards can often require duplicating efforts, writing additional scripts, or relying on specific team members for implementation. This creates inefficiencies, dependencies, and maintenance overhead.
+
+By leveraging automation tools like Selenium, we can simplify this process. A lightweight script combined with a configuration file can automate navigation, click actions, and report generation directly from the dashboard. This eliminates the need for extensive coding, reduces maintenance requirements, and minimizes dependency on specific individuals.
+
+This approach not only saves time but also ensures consistency, scalability, and a seamless workflow for users, making the reporting process more efficient and independent.
+
