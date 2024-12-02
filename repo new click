@@ -1,0 +1,48 @@
+from playwright.sync_api import sync_playwright
+
+def change_selectbox_option(app_url):
+    """
+    Interacts with a Streamlit app and changes the option of the selectbox labeled 'Asset Class'.
+    
+    :param app_url: The URL of the Streamlit app.
+    """
+    with sync_playwright() as p:
+        # Launch the browser
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+
+        # Open the Streamlit app
+        page.goto(app_url)
+
+        # Wait for the app to load
+        page.wait_for_load_state("networkidle")
+
+        # Locate the selectbox labeled 'Asset Class'
+        selectbox = page.locator("label:has-text('Asset Class') + div [role='combobox']")
+        if selectbox:
+            print("Found the 'Asset Class' selectbox.")
+
+            # Click the selectbox to open the dropdown
+            selectbox.click()
+
+            # Wait for dropdown options to appear
+            page.wait_for_selector("[role='option']")
+
+            # Select the option 'US Equity'
+            us_equity_option = page.locator("[role='option']:has-text('US Equity')")
+            if us_equity_option:
+                us_equity_option.click()
+                print("Changed the option to 'US Equity'.")
+            else:
+                print("Option 'US Equity' not found.")
+        else:
+            print("Selectbox with label 'Asset Class' not found.")
+
+        # Close the browser
+        browser.close()
+
+# Example usage
+if __name__ == "__main__":
+    app_url = "http://localhost:8501"  # Replace with your Streamlit app's URL
+    change_selectbox_option(app_url)
