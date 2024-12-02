@@ -1,0 +1,127 @@
+import json
+from playwright.sync_api import sync_playwright
+
+
+def run_dynamic_script(config_path):
+    """
+    A single dynamic function to execute Playwright actions based on a simplified config file.
+
+    Args:
+        config_path (str): Path to the configuration file in JSON format.
+
+    Config Format:
+        {
+            "url": "http://example.com",
+            "password": "default_password",
+            "tabs": [
+                {
+                    "tab": "Asset Classes",
+                    "actions": [
+                        {"type": "click", "text": "Asset classes"},
+                        {"type": "search_and_select", "search_for": "US Equity"}
+                    ]
+                },
+                {
+                    "tab": "Internal Mode",
+                    "actions": [
+                        {"type": "click", "text": "Enable internal review mode"}
+                    ]
+                },
+                {
+                    "tab": "End Date",
+                    "actions": [
+                        {"type": "click", "text": "Set End Date"},
+                        {"type": "select", "option": "CMA end date"}
+                    ]
+                }
+            ]
+        }
+    """
+    try:
+        # Load the configuration
+        with open(config_path, 'r') as file:
+            config = json.load(file)
+
+        # Launch Playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=False, executable_path="C:/Program Files/Google/Chrome/Application/chrome.exe")
+            page = browser.new_page()
+
+            # Navigate to the URL
+            page.goto(config["url"])
+            print(f"Navigated to {config['url']}")
+
+            # Default password handling
+            if "password" in config:
+                password = config["password"]
+                password_field = page.locator("input[type='password']")
+                if password_field.is_visible():
+                    password_field.fill(password)
+                    print("Entered default password.")
+                    submit_button = page.locator("button:has-text('Submit')")
+                    if submit_button.is_visible():
+                        submit_button.click()
+                        print("Clicked 'Submit' button.")
+                    else:
+                        print("Submit button not found.")
+                else:
+                    print("Password input field not found.")
+
+            # Iterate through tabs
+            for tab in config["tabs"]:
+                print(f"Switching to tab: {tab['tab']}")
+
+                for action in tab["actions"]:
+                    action_type = action["type"]
+
+                    # Handle clicks
+                    if action_type == "click":
+                        text = action["text"]
+                        element = page.locator(f"text={text}")
+                        if element.is_visible():
+                            element.click()
+                            print(f"Clicked element with text: {text}")
+                        else:
+                            print(f"Element with text '{text}' not found.")
+
+                    # Handle search and select
+                    elif action_type == "search_and_select":
+                        search_for = action["search_for"]
+                        search_box = page.locator("input[role='combobox']")
+                        if search_box.is_visible():
+                            search_box.fill(search_for)
+                            print(f"Searched for: {search_for}")
+                            page.wait_for_selector("[role='option']")
+                            option = page.locator(f"[role='option']:has-text('{search_for}')")
+                            if option.is_visible():
+                                option.click()
+                                print(f"Selected option: {search_for}")
+                            else:
+                                print(f"Option '{search_for}' not found.")
+                        else:
+                            print("Search box not found.")
+
+                    # Handle dropdown selections
+                    elif action_type == "select":
+                        option_text = action["option"]
+                        option = page.locator(f"[role='radio']:has-text('{option_text}')")
+                        if option.is_visible():
+                            option.click()
+                            print(f"Selected option: {option_text}")
+                        else:
+                            print(f"Option '{option_text}' not found.")
+
+                    else:
+                        print(f"Unknown action type: {action_type}")
+
+            # Close the browser
+            browser.close()
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+# Example usage
+if __name__ == "__main__":
+    config_file_path = "config.json"  # Path to the configuration file
+    run_dynamic_script(config_file_path)
