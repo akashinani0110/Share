@@ -1,0 +1,102 @@
+from playwright.sync_api import sync_playwright
+
+def enable_internal_mode(app_url, password):
+    """
+    Automates the process of clicking 'Enable Internal Mode', entering a password, and clicking 'Submit'.
+    
+    :param app_url: The URL of the Streamlit app.
+    :param password: The password to be entered in the password field.
+    """
+    with sync_playwright() as p:
+        # Launch the browser
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+
+        # Open the Streamlit app
+        page.goto(app_url)
+
+        # Wait for the app to load
+        page.wait_for_load_state("networkidle")
+
+        # Step 1: Locate and click the 'Enable Internal Mode' button
+        enable_button = page.locator("button:has-text('Enable Internal Mode')")
+        if enable_button:
+            enable_button.click()
+            print("Clicked 'Enable Internal Mode' button.")
+        else:
+            print("Button 'Enable Internal Mode' not found.")
+            return
+
+        # Step 2: Wait for the password input field to appear and fill in the password
+        password_field = page.locator("input[type='password']")
+        if password_field:
+            password_field.fill(password)
+            print("Entered the password.")
+        else:
+            print("Password input field not found.")
+            return
+
+        # Step 3: Locate and click the 'Submit' button
+        submit_button = page.locator("button:has-text('Submit')")
+        if submit_button:
+            submit_button.click()
+            print("Clicked 'Submit' button.")
+        else:
+            print("Button 'Submit' not found.")
+
+        # Close the browser
+        browser.close()
+
+# Example usage
+if __name__ == "__main__":
+    app_url = "http://localhost:8501"  # Replace with your Streamlit app's URL
+    password = "your_password_here"    # Replace with the desired password
+    enable_internal_mode(app_url, password)
+
+
+
+from playwright.sync_api import sync_playwright
+
+def modify_radio_button(app_url):
+    """
+    Interacts with a Streamlit app and selects the radio button labeled 'CMA end date' 
+    within the 'Set End Date' group.
+    
+    :param app_url: The URL of the Streamlit app.
+    """
+    with sync_playwright() as p:
+        # Launch the browser
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+
+        # Open the Streamlit app
+        page.goto(app_url)
+
+        # Wait for the app to load
+        page.wait_for_load_state("networkidle")
+
+        # Locate the radio group with the label 'Set End Date'
+        radio_group_label = page.locator("label:has-text('Set End Date')")
+        if radio_group_label:
+            print("Found the radio group labeled 'Set End Date'.")
+
+            # Locate the 'CMA end date' option within the radio group
+            cma_option = page.locator("[role='radio']:has-text('CMA end date')")
+            if cma_option:
+                # Click the 'CMA end date' option
+                cma_option.click()
+                print("Selected the 'CMA end date' option.")
+            else:
+                print("Option 'CMA end date' not found.")
+        else:
+            print("Radio group labeled 'Set End Date' not found.")
+
+        # Close the browser
+        browser.close()
+
+# Example usage
+if __name__ == "__main__":
+    app_url = "http://localhost:8501"  # Replace with your Streamlit app's URL
+    modify_radio_button(app_url)
