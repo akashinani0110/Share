@@ -1,0 +1,170 @@
+Here’s the fully revised and comprehensive mid-year appraisal, now including the RIAI contributions and all other points:
+
+
+---
+
+Mid-Year Appraisal: Akash
+
+Project Activities
+Technologies Used: R and Python
+
+1. TPS System Enhancements
+
+Integrated new functionality to improve visualization:
+a) Converted the Portfolio Turnover Chart into a stacked bar chart with two bars: Fixed Income Turnover and Equity Turnover.
+b) Redesigned Fixed Income Portfolio Ex-Ante Tracking Errors as a column range chart.
+
+Importance: Enhanced the clarity of turnover data and tracking error trends, making the system more intuitive for stakeholders.
+
+
+
+2. CMA Dashboard Automation
+
+Migrated the legacy R Shiny dashboard to Python Streamlit, addressing issues with maintainability and manual processes.
+
+Key enhancements included:
+
+Growth of $1 analysis, trailing t-year returns/differences, momentum indicators, regression analysis for asset classes, and factor predictors.
+
+Eliminated reliance on multiple precomputed files by introducing dynamic data fetching on dashboard initiation.
+
+Integrated composite time series creation and custom report generation.
+
+
+Automated testing: Created over 40 test cases for application validation.
+
+Added internal review mode for downloading data and generating reports.
+
+Importance: Improved scalability, usability, and efficiency while significantly reducing manual effort.
+
+
+
+3. SAA Dashboard Enhancements
+
+Added dynamic precision-based adjustments to decimals for Level 1 and Level 2 asset classes, based on user input.
+
+Implemented functionality to dynamically fetch asset classes, removing the need for hard-coded dependencies.
+
+Importance: Increased flexibility, accuracy, and user-friendliness of the dashboard.
+
+
+
+4. TAA Dashboard Enhancements
+
+Added a feature to visualize the difference between current and previous TAA results.
+
+Importance: Enabled users to make more informed tactical allocation decisions by providing comparative insights.
+
+
+
+5. APC Dashboard Enhancements
+
+Ensured timely updates and publishing of APC dashboards.
+
+Improved the readability of code and resolved technical issues by transitioning data reading from R's pyarrow package to Python.
+
+Introduced quarterly transaction-based charting for better visualization.
+
+Importance: Maintained consistent data availability and improved operational efficiency.
+
+
+
+6. RIAI Initiative
+
+Took initiative to address and test RIAI-related issues in R scripts, ensuring smooth functionality.
+
+Supported the team in troubleshooting and optimizing R-based workflows.
+
+Importance: Ensured the stability and reliability of the systems reliant on R, minimizing disruptions in ongoing processes.
+
+
+
+7. Skill Development
+
+Enrolled in a Data Science course with upGrad to enhance analytical and technical capabilities.
+
+Acquired financial and quantitative analysis knowledge through training sessions led by Rachit.
+
+Importance: Strengthened domain expertise, enabling better support for project activities.
+
+
+
+8. Innovation in Reporting
+
+Utilized Playwright for automating custom report generation, reducing code redundancy and manual intervention.
+
+Proposed the development of an Employee Management Portal for project management activities, including leave tracking, work status monitoring, utilization analysis, and task alerts.
+
+Importance: Streamlined processes and reduced dependencies on manual workflows.
+
+
+
+
+Team Activities
+
+9. ESG Initiatives
+
+Actively participated in team-building activities like the Best Out of Waste project.
+
+Planning to engage in additional ESG efforts such as Environment Day.
+
+Importance: Fostered a culture of sustainability and alignment with organizational values.
+
+
+
+10. Leadership and Mentorship
+
+
+
+Provided technical guidance and mentorship to team members, helping improve their skills.
+
+Importance: Strengthened the team’s technical capabilities and promoted collaborative growth.
+
+
+11. Collaboration
+
+
+
+Worked with cross-functional teams on topics such as web scraping, Streamlit project structuring, and data management solutions.
+
+Importance: Enabled smoother project execution and knowledge sharing across teams.
+
+
+12. Problem-Solving
+
+Resolved critical issues and implemented new features across TPS, SAA, TAA, APC, and CMA dashboards.
+
+Importance: Ensured the reliability and adaptability of key systems.
+
+
+
+
+Additional Contributions
+
+Regularly hosted, maintained, and supported CIO dashboards, ensuring smooth operations.
+
+
+Impact
+Your work has significantly improved the efficiency, usability, and scalability of multiple dashboards. The migration to Python, implementation of advanced analytics, and consistent delivery of updates have been crucial in reducing manual processes and enabling data-driven decision-making.
+
+Your leadership in mentoring teammates, proactive participation in ESG initiatives, and innovative ideas, such as the Employee Management Portal, have further demonstrated your commitment to team success and organizational growth.
+
+Future Goals
+
+Complete the CMA migration by August as planned, ensuring full automation and scalability.
+
+Continue driving innovation and process optimization in dashboards.
+
+Build and deploy the Employee Management Portal to streamline project operations.
+
+Expand contributions to ESG initiatives to align with the company's vision.
+
+
+Summary
+Your dedication, problem-solving skills, and innovative approach have had a profound impact on the team and organization. Thank you for your continued efforts and contributions.
+
+
+---
+
+Let me know if you’d like further adjustments!
+
