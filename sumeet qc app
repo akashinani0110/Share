@@ -1,0 +1,153 @@
+# Import required libraries
+import json  # To handle JSON files
+import requests
+from bs4 import BeautifulSoup
+import os
+import logging
+import streamlit as st
+import pandas as pd
+import datetime as dt
+from streamlit_autorefresh import st_autorefresh
+from datetime import date, timedelta
+from pytz import timezone
+
+# Load configuration from the JSON file
+with open("config.json", "r") as config_file:
+    config = json.load(config_file)
+
+# Streamlit configurations
+st.set_page_config(layout=config["page_settings"]["layout"])  # Set layout from config
+st.title(config["page_settings"]["title"])  # Set title from config
+st_autorefresh(interval=config["page_settings"]["autorefresh_interval"], key="dataframerefresh")  # Auto-refresh interval
+placeholder = st.empty()
+
+# URLs, Dashboard Names, and Periodicity from configuration
+URL = config["urls"]
+Dash_Name = config["dash_names"]
+Periodicity = config["periodicity"]
+
+# Logging configuration
+logging_level = getattr(logging, config["logging_level"].upper(), logging.INFO)  # Convert level to logging constant
+logging.basicConfig(level=logging_level)
+
+# Function: Find the next working day based on a given date
+@st.cache_data
+def NextWorkingDay(last_date):
+    """
+    Finds the next working day based on the given date.
+
+    Parameters:
+        last_date (datetime.date): The starting date.
+
+    Returns:
+        list: Contains dates for weekly, monthly, quarterly, and yearly schedules.
+    """
+    last_date = dt.date(last_date.year, last_date.month, last_date.day)
+    week_start_date = last_date + timedelta(days=(7 - last_date.weekday()))  # Next Monday
+    month_start_date = (last_date.replace(day=1) + timedelta(days=32)).replace(day=1)  # Next month
+    quarter_start_date = (last_date.replace(month=(last_date.month - 1) // 3 * 3 + 4, day=1)
+                          if last_date.month % 3 != 0 else
+                          last_date.replace(day=1) + timedelta(days=90))  # Next quarter
+    year_start_date = dt.date(last_date.year + 1, 1, 1)  # Next year
+    return [week_start_date, month_start_date, quarter_start_date, year_start_date]
+
+# Function: Extract last update date and calculate next update date
+@st.cache_data(ttl=10*60*1000)
+def ExtractDate(dash_url, frequency, dash_name):
+    """
+    Extracts the last update date from a dashboard URL and calculates the next update date.
+
+    Parameters:
+        dash_url (str): The URL of the dashboard.
+        frequency (str): The update frequency (e.g., "Weekly", "Monthly").
+        dash_name (str): The name of the dashboard.
+
+    Returns:
+        list: Last update date, next expected update date, and dashboard name.
+    """
+    try:
+        r = requests.get(dash_url, verify=False)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        job_elements = str(soup.find_all("div", class_="updatedDate"))
+        start = job_elements.find("updatedDate") + 26
+        end = job_elements.find("</div>", start)
+        if start != -1 and end != -1:
+            last_update_date = dt.datetime.strptime(
+                job_elements[start:end].strip(), "%b %d, %Y"
+            ).date()
+            if frequency == "Weekly":
+                next_update_date = NextWorkingDay(last_update_date)[0]
+            elif frequency == "Monthly":
+                next_update_date = NextWorkingDay(last_update_date)[1]
+            elif frequency == "Quarterly":
+                next_update_date = NextWorkingDay(last_update_date)[2]
+            elif frequency == "Yearly":
+                next_update_date = NextWorkingDay(last_update_date)[3]
+            else:
+                next_update_date = None
+            return [last_update_date.strftime("%b %d, %Y"),
+                    next_update_date.strftime("%b %d, %Y") if next_update_date else "N/A",
+                    dash_name]
+        else:
+            return ["No Date", "N/A", dash_name]
+    except Exception as e:
+        logging.error(f"Error extracting date for {dash_name}: {e}")
+        return ["Error", "N/A", dash_name]
+
+# Function: Check the status of a URL
+@st.cache_data(ttl=10*60*1000)
+def url_checker(url):
+    """
+    Checks the status of a given URL.
+
+    Parameters:
+        url (str): The URL to check.
+
+    Returns:
+        list: URL status, the current timestamp, and additional information.
+    """
+    try:
+        response = requests.get(url, verify=False)
+        if response.status_code == 200:
+            return [url, "On Track", dt.datetime.now(timezone("US/Eastern")).strftime("%b %d, %Y %H:%M:%S")]
+        else:
+            return [url, "Off Track", dt.datetime.now(timezone("US/Eastern")).strftime("%b %d, %Y %H:%M:%S")]
+    except Exception as e:
+        logging.error(f"Error checking URL {url}: {e}")
+        return [url, "Error", dt.datetime.now(timezone("US/Eastern")).strftime("%b %d, %Y %H:%M:%S")]
+
+# Main logic: Iterate over URLs and generate report
+for i, url in enumerate(URL):
+    status = url_checker(url)
+    last_update = ExtractDate(url, Periodicity[i], Dash_Name[i])
+    st.write(f"Dashboard: {Dash_Name[i]}")
+    st.write(f"URL: {url}")
+    st.write(f"Status: {status[1]} | Last Update: {last_update[0]} | Next Update: {last_update[1]}")
+    st.write("---")
+
+
+
+----------
+config.json
+---------
+
+{
+  "page_settings": {
+    "layout": "wide",
+    "title": "CIO Dashboard Quality Control",
+    "autorefresh_interval": 300000
+  },
+  "urls": [
+    "https://rsc-uat1.sdi.corp.bankofamerica.com/tps",
+    "https://rsc-uat1.sdi.corp.bankofamerica.com/saa_vs_mra/",
+    "https://rsc-uat1.sdi.corp.bankofamerica.com/quilt_chart/"
+  ],
+  "dash_names": [
+    "Strategic Asset Allocation Guidance and Constraints",
+    "Strategic Asset Allocation Vs. Market Risk Allocation",
+    "Historical Performance Quilt Chart",
+    "Tactical Asset Allocation Historical Analysis"
+  ],
+  "periodicity": ["Yearly", "Quarterly", "Monthly", "Ad hoc", "Weekly", "Monthly", "Quarterly"],
+  "logging_level": "INFO"
+}
