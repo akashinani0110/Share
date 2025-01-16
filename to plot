@@ -1,0 +1,85 @@
+import plotly.graph_objects as go
+from plotly.io import to_image, write_image
+import base64
+from PIL import Image
+import io
+import os
+
+# Create a sample Plotly chart
+fig = go.Figure(data=go.Bar(x=["A", "B", "C"], y=[10, 20, 30]))
+
+# Directory to save images
+output_dir = "images"
+os.makedirs(output_dir, exist_ok=True)
+
+# 1. Using `write_image` (requires `kaleido`)
+fig.write_image(f"{output_dir}/chart_1.png")
+print("1. Saved using `write_image` with Kaleido.")
+
+# 2. Using `to_image` to get a byte string and save manually
+image_bytes = to_image(fig, format="png")
+with open(f"{output_dir}/chart_2.png", "wb") as f:
+    f.write(image_bytes)
+print("2. Saved using `to_image`.")
+
+# 3. Convert chart to an image in memory and save using PIL
+image = Image.open(io.BytesIO(image_bytes))
+image.save(f"{output_dir}/chart_3.png")
+print("3. Saved using PIL with in-memory conversion.")
+
+# 4. Using `orca` as the engine (install `orca` if necessary)
+fig.write_image(f"{output_dir}/chart_4.png", engine="orca")
+print("4. Saved using `orca` engine.")
+
+# 5. Using `base64` encoding and embedding
+base64_image = base64.b64encode(image_bytes).decode("utf-8")
+html_content = f"""
+<!DOCTYPE html>
+<html>
+<head><title>Chart</title></head>
+<body>
+<h1>Base64 Embedded Chart</h1>
+<img src="data:image/png;base64,{base64_image}" alt="Chart">
+</body>
+</html>
+"""
+with open(f"{output_dir}/chart_5.html", "w") as f:
+    f.write(html_content)
+print("5. Saved as HTML with embedded Base64 image.")
+
+# 6. Take a screenshot of the chart using Selenium
+try:
+    from selenium import webdriver
+
+    html_path = f"{output_dir}/chart_6.html"
+    fig.write_html(html_path)
+    driver = webdriver.Chrome()  # Ensure `chromedriver` is installed
+    driver.get(f"file://{os.path.abspath(html_path)}")
+    screenshot_path = f"{output_dir}/chart_6.png"
+    driver.save_screenshot(screenshot_path)
+    driver.quit()
+    print("6. Screenshot saved using Selenium.")
+except Exception as e:
+    print(f"6. Selenium screenshot skipped: {e}")
+
+# 7. Using Matplotlib conversion
+try:
+    from plotly.subplots import plotly_to_mpl
+
+    mpl_fig = plotly_to_mpl(fig)
+    mpl_fig.savefig(f"{output_dir}/chart_7.png")
+    print("7. Saved using Matplotlib conversion.")
+except Exception as e:
+    print(f"7. Matplotlib conversion skipped: {e}")
+
+# 8. Exporting as SVG format
+fig.write_image(f"{output_dir}/chart_8.svg")
+print("8. Saved as SVG format.")
+
+# 9. Exporting as PDF format
+fig.write_image(f"{output_dir}/chart_9.pdf")
+print("9. Saved as PDF format.")
+
+# 10. Exporting a custom resolution image
+fig.write_image(f"{output_dir}/chart_10_high_res.png", width=1200, height=800, scale=2)
+print("10. Saved with high resolution.")
