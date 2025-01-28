@@ -1,0 +1,88 @@
+ComputeTrackingErrorAttribution <- function(
+  pfHoldings, bmkHoldings, returnsDataPath, currentData, availableFunds, assetTbl, returnLength = 36
+) {
+  # Import returns data using Python via the reticulate package
+  print("Started reading Feather file...") # Notify the start of Feather file reading
+  reticulate::py_run_string("
+    import pyarrow.feather as feather
+
+    # Define a Python function to read Feather files
+    def read_feather_file(file_path):
+        return feather.read_feather(file_path)
+  ")
+  
+  # Use the Python function to read the returns data from the Feather file
+  returnsDataAllDates <- reticulate::py$read_feather_file(returnsDataPath)
+  print("Completed reading Feather file.") # Notify completion of file reading
+
+  # Find the last row in the returns data with complete (non-NA) data
+  if (is.null(returnsDataAllDates$index)) { 
+    # If there is no 'index' column, use the total number of rows
+    lastFilledRowIndex <- nrow(returnsDataAllDates)
+  } else {
+    # Identify rows where the 'index' column is not NA
+    filledIndex <- which(!is.na(returnsDataAllDates$index))
+    # Get the index of the last row with valid data
+    lastFilledRowIndex <- filledIndex[length(filledIndex)]
+  }
+
+  # Select the last `returnLength` rows of returns data
+  rowIndex <- seq(to = lastFilledRowIndex, length.out = returnLength)
+  returnsData <- returnsDataAllDates[rowIndex, ] # Subset the returns data
+  dateVec <- as.Date(returnsData$Date) # Convert the date column to Date format
+
+  # Assign a benchmark index for cash holdings
+  cashBmkId <- unique(bmkHoldings[global_cat == "Cash", asset_id]) # Identify the cash benchmark ID
+  pfHoldings[global_cat == "Cash", prim_prospectus_bm_id := cashBmkId] # Assign it to portfolio holdings
+  if (length(cashBmkId) != 1) stop("[Error] Cash benchmark proxy index length is not 1") # Error if multiple IDs
+
+  # Filter portfolio holdings with positive weights
+  positivePfHoldings <- pfHoldings[weight > 0]
+  # Identify holdings with missing primary benchmark IDs
+  emptyBmkHoldings <- positivePfHoldings[is.na(prim_prospectus_bm_id)]
+  if (nrow(emptyBmkHoldings) > 0) stop("[Error] Funds missing primary prospectus benchmark index.") # Stop if any found
+
+  # Compute tracking error attribution for each portfolio
+  returnsByPf <- lapply(unique(positivePfHoldings$pf_id), function(pfId) {
+    # Extract portfolio holdings for the current portfolio ID
+    thisPfData <- positivePfHoldings[pf_id == pfId, ]
+    # Extract benchmark holdings for the current portfolio ID
+    thisPfBmkData <- bmkHoldings[pf_id == pfId, ]
+
+    # Prepare a list of IDs for funds, benchmarks, and assets
+    idList <- list(
+      fund = thisPfData$asset_id, # Fund IDs
+      fundBmk = thisPfData$prim_prospectus_bm_id, # Fund benchmark IDs
+      bmk = thisPfBmkData$asset_id # Benchmark IDs
+    )
+
+    # Extract returns for each set of IDs as matrices
+    returnsList <- lapply(idList, function(ids) returnsData[, ..ids] %>% as.matrix())
+
+    # Get the weights for the portfolio and benchmarks
+    pfWgt <- thisPfData$weight # Portfolio weights
+    bmkWgt <- thisPfBmkData$weight # Benchmark weights
+
+    # Initialize a matrix to store returns data
+    returnsMat <- matrix(NA, ncol = 3, nrow = returnLength)
+    colnames(returnsMat) <- c("fund", "fundBmk", "bmk") # Column names for returns
+    # Calculate weighted returns for funds, fund benchmarks, and benchmarks
+    returnsMat[, "fund"] <- returnsList$fund %*% pfWgt
+    returnsMat[, "fundBmk"] <- returnsList$fundBmk %*% pfWgt
+    returnsMat[, "bmk"] <- returnsList$bmk %*% bmkWgt
+
+    # Create a data table for returns and calculate excess returns
+    data.table::data.table(
+      fund = returnsMat[, "fund"], # Fund returns
+      fundBmk = returnsMat[, "fundBmk"], # Fund benchmark returns
+      bmk = returnsMat[, "bmk"], # Benchmark returns
+      excess_total = returnsMat[, "fund"] - returnsMat[, "bmk"], # Total excess return
+      excess_active = returnsMat[, "fund"] - returnsMat[, "fundBmk"], # Active excess return
+      excess_misfit = returnsMat[, "fundBmk"] - returnsMat[, "bmk"] # Misfit excess return
+    )
+  })
+
+  # Combine results for all portfolios into a single data table
+  updatedRiskAttrData <- rbindlist(returnsByPf)
+  return(updatedRiskAttrData) # Return the final risk attribution data
+}
