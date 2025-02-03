@@ -1,0 +1,46 @@
+import rpy2.robjects as ro
+import pandas as pd
+from rpy2.robjects import pandas2ri
+
+# Enable conversion between pandas and R data frames
+pandas2ri.activate()
+
+# Sample data (Replace with your actual dataset)
+data = pd.DataFrame({
+    'pmt': ['credit', 'debit', 'paypal'],
+    'sub_type': ['online', 'offline', 'online'],
+    'date': [1, 2, 3],
+    'hour': [10, 11, 12],
+    'failure_rate': [0.1, 0.2, 0.15]
+})
+
+# Convert pandas DataFrame to R DataFrame
+r_df = pandas2ri.py2rpy(data)
+
+# Define R script as a string
+r_script = """
+process_data <- function(df) {
+  print("Received Data in R:")
+  print(df)
+  
+  # Perform any processing (Example: Mean Failure Rate)
+  mean_failure <- mean(df$failure_rate)
+  print(paste("Mean Failure Rate:", mean_failure))
+  
+  # Return a summary table
+  return(data.frame(mean_failure_rate = mean_failure))
+}
+"""
+
+# Load the R script in Python
+ro.r(r_script)
+
+# Call the R function with the DataFrame
+process_data = ro.globalenv['process_data']
+result = process_data(r_df)
+
+# Convert the result back to a pandas DataFrame
+result_df = pandas2ri.rpy2py(result)
+
+print("Processed Data in Python:")
+print(result_df)
