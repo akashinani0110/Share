@@ -1,0 +1,138 @@
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+import io
+
+class ReportPage:
+    def __init__(self, title: str, header: str, chart_data: pd.DataFrame, x_col: str, y_col: str, footnote: str):
+        self.title = title
+        self.header = header
+        self.chart_data = chart_data
+        self.x_col = x_col
+        self.y_col = y_col
+        self.footnote = footnote
+
+    def plot_chart(self):
+        """Generates a Plotly chart from data."""
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=self.chart_data[self.x_col], 
+            y=self.chart_data[self.y_col], 
+            mode='lines+markers', 
+            name=self.y_col
+        ))
+        fig.update_layout(title=self.header, xaxis_title=self.x_col, yaxis_title=self.y_col)
+        return fig
+
+    def download_data(self):
+        """Creates a CSV download link."""
+        csv_buffer = io.StringIO()
+        self.chart_data.to_csv(csv_buffer, index=False)
+        return csv_buffer.getvalue()
+
+    def render(self):
+        """Renders the page in Streamlit."""
+        st.title(self.title)
+        st.header(self.header)
+
+        # Plot the chart
+        fig = self.plot_chart()
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Download button
+        csv_data = self.download_data()
+        st.download_button(
+            label="Download Data",
+            data=csv_data,
+            file_name="chart_data.csv",
+            mime="text/csv"
+        )
+
+        # Add to report button
+        if st.button("Add Chart to Report"):
+            st.session_state["report_charts"].append((self.title, fig))
+            st.success("Chart added to report!")
+
+        # Footnote
+        st.markdown(f"**Note:** {self.footnote}")
+
+# Initialize report session if not already done
+if "report_charts" not in st.session_state:
+    st.session_state["report_charts"] = []
+
+# Example usage
+if __name__ == "__main__":
+    sample_data = pd.DataFrame({
+        "Date": pd.date_range(start="2024-01-01", periods=10, freq="D"),
+        "Value": [10, 15, 20, 25, 30, 28, 35, 40, 45, 50]
+    })
+
+    page = ReportPage(
+        title="Sample Report Page",
+        header="Monthly Data Analysis",
+        chart_data=sample_data,
+        x_col="Date",
+        y_col="Value",
+        footnote="This chart shows sample data over time."
+    )
+
+    page.render()
+
+
+
+-----------------------------
+
+import unittest
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+from io import StringIO
+from report_page import ReportPage  # Import the class
+
+class TestReportPage(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        """Set up a sample DataFrame for testing."""
+        cls.sample_data = pd.DataFrame({
+            "Date": pd.date_range(start="2024-01-01", periods=5, freq="D"),
+            "Value": [10, 20, 30, 40, 50]
+        })
+        cls.report_page = ReportPage(
+            title="Test Report",
+            header="Test Chart",
+            chart_data=cls.sample_data,
+            x_col="Date",
+            y_col="Value",
+            footnote="Test footnote."
+        )
+    
+    def test_plot_chart(self):
+        """Test that the Plotly chart is correctly generated."""
+        fig = self.report_page.plot_chart()
+        self.assertIsInstance(fig, go.Figure)  # Check if it's a Plotly figure
+        self.assertEqual(len(fig.data), 1)  # Should have one data trace
+        self.assertEqual(fig.layout.title.text, "Test Chart")  # Check chart title
+    
+    def test_download_data(self):
+        """Test that CSV download data is correctly formatted."""
+        csv_output = self.report_page.download_data()
+        expected_csv = StringIO()
+        self.sample_data.to_csv(expected_csv, index=False)
+
+        self.assertEqual(csv_output.strip(), expected_csv.getvalue().strip())  # Ensure CSV output matches
+    
+    def test_add_to_report(self):
+        """Test if the chart is added to session state."""
+        st.session_state["report_charts"] = []  # Reset session state
+        fig = self.report_page.plot_chart()
+        
+        # Simulate adding to report
+        st.session_state["report_charts"].append(("Test Report", fig))
+        
+        self.assertEqual(len(st.session_state["report_charts"]), 1)  # Should contain one chart
+        self.assertEqual(st.session_state["report_charts"][0][0], "Test Report")  # Title should match
+        self.assertIsInstance(st.session_state["report_charts"][0][1], go.Figure)  # Should be a Plotly figure
+
+if __name__ == "__main__":
+    unittest.main()
