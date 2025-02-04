@@ -1,0 +1,30 @@
+import rpy2.robjects as ro  
+
+# Load the RDS file using R's readRDS function
+rds_file = "your_file.rds"
+readRDS = ro.r['readRDS']
+data = readRDS(rds_file)
+
+# Convert to pandas DataFrame (if the RDS file contains a dataframe)
+import pandas as pd
+from rpy2.robjects import pandas2ri
+
+pandas2ri.activate()
+df = pandas2ri.rpy2py(data)
+
+print(df.head())  # Preview the data
+
+
+
+------
+
+
+import pyreadr  
+
+# Read the RDS file
+result = pyreadr.read_r("your_file.rds")  
+
+# Extract the first (and usually only) object from the result
+df = result[None]  
+
+print(df.head())  # Preview the data
