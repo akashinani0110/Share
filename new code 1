@@ -1,0 +1,15 @@
+library(stringr)
+
+text <- "Sample text (123) with number"
+number <- str_extract(text, "\(\\d+)\")  # Extracts "(123)"
+number <- str_extract(number, "\\d+")        # Extracts "123"
+
+print(number)  # Output: "123"
+
+
+
+text <- "Sample text (456) with number"
+number <- regmatches(text, gregexpr("\(\\d+)\", text))[[1]]
+number <- gsub("[()]", "", number)  # Remove parentheses
+
+print(number)  # Output: "456"
