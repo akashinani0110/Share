@@ -1,0 +1,5 @@
+df <- data.frame(Plan_Name = c("Basic Plan (12345)", "Premium Plan (67890)", "Gold Plan (54321)"))
+
+df$Plan_ID <- gsub(".*\(\\d+)\.*", "\\1", df$Plan_Name)
+
+print(df)
