@@ -1,0 +1,70 @@
+import unittest
+from unittest.mock import patch, MagicMock
+import streamlit as st
+import report_generation  # Assuming functions are in report_generation.py
+
+
+class TestReportGeneration(unittest.TestCase):
+
+    @patch("streamlit.session_state", new_callable=dict)
+    def test_validate_password_correct(self, mock_session):
+        """Test validate_password with correct password"""
+        mock_session["password"] = "correct_pass"
+        mock_session["cic_password"] = "correct_pass"
+
+        report_generation.validate_password("correct_pass")
+
+        self.assertTrue(mock_session["authenticated"])
+        self.assertFalse(mock_session["show_password"])
+        self.assertTrue(mock_session["generate_report"])
+        self.assertTrue(mock_session["download_data_access"])
+
+    @patch("streamlit.session_state", new_callable=dict)
+    def test_validate_password_incorrect(self, mock_session):
+        """Test validate_password with incorrect password"""
+        mock_session["password"] = "wrong_pass"
+        mock_session["cic_password"] = "correct_pass"
+
+        with patch("streamlit.error") as mock_error:
+            report_generation.validate_password("wrong_pass")
+
+        mock_error.assert_called_with("Incorrect password Please try again.")
+        self.assertNotIn("authenticated", mock_session)
+        self.assertNotIn("generate_report", mock_session)
+        self.assertNotIn("download_data_access", mock_session)
+
+    @patch("streamlit.session_state", new_callable=dict)
+    def test_set_internal_review_mode(self, mock_session):
+        """Test enabling internal review mode"""
+        report_generation.set_internal_review_mode()
+
+        self.assertTrue(mock_session["download_data_access"])
+        self.assertTrue(mock_session["generate_report"])
+
+    @patch("streamlit.session_state", new_callable=dict)
+    def test_toggle_password_box(self, mock_session):
+        """Test toggling password input visibility"""
+        mock_session["show_password"] = False
+
+        report_generation.toggle_password_box()
+
+        self.assertTrue(mock_session["show_password"])
+
+    @patch("streamlit.session_state", new_callable=dict)
+    def test_set_highlight_sidebar_input(self, mock_session):
+        """Test sidebar text input and button"""
+        mock_session["update_existing_reports"] = True
+
+        with patch("streamlit.sidebar.text_input", return_value="Test Title") as mock_text_input, \
+             patch("streamlit.sidebar.button", return_value=True) as mock_button, \
+             patch("report_generation.add_chart_to_report") as mock_add_chart:
+            
+            report_generation.set_highlight_sidebar_input()
+
+            mock_text_input.assert_called_with("Slide Title Name")
+            mock_button.assert_called_with("Highlight Page")
+            mock_add_chart.assert_called_with(chart_key="Test Title", chart_header="Test Title", chart=None)
+
+
+if __name__ == "__main__":
+    unittest.main()
