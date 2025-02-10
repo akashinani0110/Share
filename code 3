@@ -1,0 +1,1 @@
+df$Plan_ID <- sub(".*\(\\d+)\.*", "\\1", df$Plan_Name)
