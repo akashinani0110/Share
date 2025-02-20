@@ -1,0 +1,19 @@
+library(tidyverse)
+
+# Sample list with named text
+data_list <- list(
+  example1 = "Median: 1.35% |Minimum: 0.70% |Maximum: 1.54%",
+  example2 = "Median: 2.10% |Minimum: 1.20% |Maximum: 2.80%"
+)
+
+# Convert list to a data frame
+df <- map_dfr(names(data_list), function(name) {
+  values <- str_extract_all(data_list[[name]], "\\d+\\.\\d+") %>% unlist()
+  tibble(listname = name, median = values[1], minimum = values[2], maximum = values[3])
+})
+
+# Convert columns to numeric
+df <- df %>% mutate(across(median:maximum, as.numeric))
+
+# Print the result
+print(df)
