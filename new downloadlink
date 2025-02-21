@@ -1,0 +1,69 @@
+#' @title Merge Precomputed Variables for Risk Analysis
+#' @description This function processes and merges various precomputed financial risk attributes, 
+#'              expense ratios, tracking errors, turnover data, and AUM (Assets Under Management)
+#'              from different sources into a consolidated dataset.
+#' @param precomputedVariables A list containing precomputed data frames for risk attributes,
+#'                             net expense ratios, tracking errors, turnover, and AUM.
+#' @return A merged data frame containing financial metrics for different plans.
+#' @import dplyr purrr stringr tibble
+#' @export
+merge_precomputed_data <- function(precomputedVariables) {
+  
+  # Extract and process risk attributes
+  risk_attr <- precomputedVariables$SriskAttr$Sprogramsallsdata
+  risk_attr$Plan_Id <- unlist(lapply(risk_attr$Plan, function(x) {
+    strsplit(strsplit(x, "\")[[1]][2], "\")[[1]][1]
+  }))
+  
+  # Extract and process expense ratios
+  exp_ratios <- precomputedVariables$SnetExpRatiosprogramsall[[1]]
+  exp_ratios$Plan_Id <- unlist(lapply(exp_ratios$Plan, function(x) {
+    strsplit(strsplit(x, "\")[[1]][2], "\")[[1]][1]
+  }))
+  
+  # Merge risk attributes and expense ratios
+  merged_data <- merge(risk_attr, exp_ratios, by = "Plan_Id", all = TRUE)
+  
+  # Extract and process tracking error data
+  tracking_error_data <- purrr::map_dfr(names(precomputedVariables$StrackingErrorCharts), function(name) {
+    tracking_error <- precomputedVariables$StrackingErrorCharts[[name]]
+    values <- stringr::str_extract_all(tracking_error$Ssubtitlestext, "\\d+\\.\\d+") %>% unlist()
+    
+    tibble::tibble(
+      Plan_Id = name,
+      Median_Tracking_Error = as.numeric(values[1]),
+      Min_Tracking_Error = as.numeric(values[2]),
+      Max_Tracking_Error = as.numeric(values[3])
+    )
+  })
+  
+  # Merge tracking error data
+  merged_data <- merge(merged_data, tracking_error_data, by = "Plan_Id", all = TRUE)
+  
+  # Extract and process turnover data
+  turnover <- precomputedVariables$Sturnover$Sprogram
+  if (!is.null(turnover)) {
+    turnover$Plan_Id <- unlist(lapply(turnover$Plan, function(x) {
+      strsplit(strsplit(x, "\")[[1]][2], "\")[[1]][1]
+    }))
+    
+    merged_data <- merge(merged_data, turnover, by = "Plan_Id", all = TRUE)
+  }
+  
+  # Extract and process AUM data
+  aum <- precomputedVariables$SaumStable
+  merged_data <- merge(merged_data, aum, by = "Plan_Id", all = TRUE)
+  
+  # Select and rename relevant columns
+  final_data <- merged_data %>%
+    select(
+      Plan_Id, Plan.x,
+      Median_Tracking_Error, Min_Tracking_Error, Max_Tracking_Error,
+      Median_Expense_Ratio, Min_Expense_Ratio, Max_Expense_Ratio,
+      Merrill_AUM = `AUM Column Name`, Merrill_Participants = `Participants Column Name`
+    ) %>%
+    rename(Plan_Name = Plan.x) %>%
+    filter(!is.na(Plan_Name))
+  
+  return(final_data)
+}
