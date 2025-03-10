@@ -1,0 +1,101 @@
+import os import jinja2 import plotly.graph_objects as go import pandas as pd import webbrowser from datetime import date
+
+def generate_report( theme="BofA", output_file_name="defaultReport.html", output_directory=None, title="Default Title", subtitle="Default Subtitle", report_date=date.today().strftime("%Y-%m-%d"), author="Chief Investment Office", page_obj_list=None, custom_css_file=None, preview_on_browser=True, ): """ Generates an HTML report with tables and charts, similar to an RMarkdown report. """ if page_obj_list is None: page_obj_list = [ {"title": "Default First Page Title", "subtitle": "Default First Page Subtitle", "content": "Default First Page Content"}, {"title": "Default Second Page Title", "subtitle": "Default Second Page Subtitle", "content": "Default Second Page Content"} ]
+
+# Jinja2 template setup
+template_str = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .page { margin-bottom: 40px; padding: 20px; border: 1px solid #ddd; }
+        .chart-container { width: 100%; height: 400px; }
+        .table-container { margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+    </style>
+    {% if custom_css_file %}
+    <link rel="stylesheet" href="{{ custom_css_file }}">
+    {% endif %}
+</head>
+<body>
+    <h1>{{ title }}</h1>
+    <h2>{{ subtitle }}</h2>
+    <p><strong>Author:</strong> {{ author }}</p>
+    <p><strong>Date:</strong> {{ report_date }}</p>
+    
+    {% for page in page_obj_list %}
+        <div class="page">
+            <h2>{{ page.title }}</h2>
+            <h3>{{ page.subtitle }}</h3>
+            <p>{{ page.content }}</p>
+            
+            {% if page.get('table_data') %}
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            {% for col in page.table_data.columns %}
+                                <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                        {% for _, row in page.table_data.iterrows() %}
+                            <tr>
+                                {% for col in page.table_data.columns %}
+                                    <td>{{ row[col] }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+            
+            {% if page.get('chart_html') %}
+                <div class="chart-container">
+                    {{ page.chart_html|safe }}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>
+"""
+
+template = jinja2.Template(template_str)
+
+# Generate HTML
+rendered_html = template.render(
+    title=title,
+    subtitle=subtitle,
+    report_date=report_date,
+    author=author,
+    page_obj_list=page_obj_list,
+    custom_css_file=custom_css_file,
+)
+
+# Define output path
+output_path = os.path.join(output_directory or os.getcwd(), output_file_name)
+with open(output_path, "w", encoding="utf-8") as f:
+    f.write(rendered_html)
+
+print(f"[Generation Completed] {output_path}")
+
+# Open in browser
+if preview_on_browser:
+    webbrowser.open(f"file://{output_path}")
+
+return output_path
+
+Example Usage with Plotly Charts and Tables
+
+def create_sample_chart(): fig = go.Figure() fig.add_trace(go.Bar(x=["A", "B", "C"], y=[10, 15, 7])) return fig.to_html(full_html=False)
+
+def create_sample_table(): return pd.DataFrame({"Category": ["A", "B", "C"], "Values": [10, 15, 7]})
+
+Example Report Content
+
+pages = [ {"title": "Page 1", "subtitle": "Chart Example", "content": "Here is a sample chart:", "chart_html": create_sample_chart()}, {"title": "Page 2", "subtitle": "Table Example", "content": "Here is a sample table:", "table_data": create_sample_table()} ]
+
+generate_report(page_obj_list=pages)
+
