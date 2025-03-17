@@ -1,0 +1,31 @@
+def generate_slide(title, subtitle, body, footer, output_file="slide.html"):
+    template = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Template</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
+        .slide { width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .title { font-size: 2em; font-weight: bold; }
+        .subtitle { font-size: 1.5em; color: gray; }
+        .content { margin: 20px 0; }
+        .footer { position: absolute; bottom: 10px; font-size: 0.8em; color: darkgray; }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="title">{title}</div>
+        <div class="subtitle">{subtitle}</div>
+        <div class="content">{body}</div>
+        <div class="footer">{footer}</div>
+    </div>
+</body>
+</html>"""
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(template.format(title=title, subtitle=subtitle, body=body, footer=footer))
+
+# Example usage:
+generate_slide("Slide 1", "Introduction", "<img src='chart.png' alt='Chart'>", "Footer Text", "slide1.html")
