@@ -1,0 +1,117 @@
+def generate_ppt_style_slides(slides, output_file="presentation.html"):
+    """
+    Generates an HTML file with multiple slides styled like a PowerPoint presentation.
+
+    Parameters:
+    slides (list of dict): List of slide data where each dict contains:
+        - "title" (str): The main title of the slide.
+        - "subtitle" (str): The subtitle or description.
+        - "body" (str): HTML content (e.g., images, tables, text).
+        - "footer" (str): Footer text (e.g., date, copyright).
+        - "logo" (str, optional): Path to the logo image.
+    output_file (str): The name of the generated HTML file.
+
+    Example usage:
+    slides = [
+        {"title": "CMA Output", "subtitle": "Chief Investment Office", "body": "<img src='chart1.png'>", "footer": "March 18, 2025", "logo": "logo.png"},
+        {"title": "Slide 2", "subtitle": "Analysis", "body": "<table><tr><td>Data</td></tr></table>", "footer": "Confidential"},
+    ]
+    generate_ppt_style_slides(slides, "slides.html")
+    """
+
+    template = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Presentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: black; overflow: hidden; }
+        .slide-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .slide { width: 80%; height: 80vh; background: white; box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.3); padding: 30px; display: none; flex-direction: column; justify-content: space-between; border-radius: 10px; }
+        .active { display: flex; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .title { font-size: 2em; font-weight: bold; }
+        .subtitle { font-size: 1.2em; color: gray; }
+        .content { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 1.2em; text-align: center; }
+        .footer { text-align: left; font-size: 0.8em; color: darkgray; border-top: 2px solid #ddd; padding-top: 10px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 10px; }
+        .nav-buttons button { padding: 10px 20px; font-size: 1em; cursor: pointer; border: none; background: #007bff; color: white; border-radius: 5px; }
+        .nav-buttons button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        {slides_content}
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll(".slide");
+
+        function showSlide(index) {
+            slides.forEach(slide => slide.classList.remove("active"));
+            slides[index].classList.add("active");
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowRight") nextSlide();
+            if (event.key === "ArrowLeft") prevSlide();
+        });
+
+        showSlide(0);
+    </script>
+</body>
+</html>"""
+
+    slide_template = """
+    <div class="slide">
+        <div class="header">
+            <div class="title">{title}</div>
+            <img src="{logo}" alt="Logo" height="40">
+        </div>
+        <div class="subtitle">{subtitle}</div>
+        <div class="content">{body}</div>
+        <div class="footer">{footer}</div>
+        <div class="nav-buttons">
+            <button onclick="prevSlide()">Previous</button>
+            <button onclick="nextSlide()">Next</button>
+        </div>
+    </div>"""
+
+    slides_content = ""
+    for slide in slides:
+        slides_content += slide_template.format(
+            title=slide.get("title", ""),
+            subtitle=slide.get("subtitle", ""),
+            body=slide.get("body", ""),
+            footer=slide.get("footer", ""),
+            logo=slide.get("logo", "logo.png")
+        )
+
+    html_content = template.format(slides_content=slides_content)
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+# Example usage:
+slides_data = [
+    {"title": "CMA Output", "subtitle": "Chief Investment Office", "body": "<img src='chart1.png'>", "footer": "March 18, 2025", "logo": "logo.png"},
+    {"title": "Slide 2", "subtitle": "Analysis", "body": "<table><tr><td>Data</td></tr></table>", "footer": "Confidential"},
+]
+
+generate_ppt_style_slides(slides_data, "presentation.html")
