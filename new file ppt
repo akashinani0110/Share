@@ -1,0 +1,65 @@
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Presentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; overflow: hidden; background-color: #f4f4f4; }
+        .slide-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .slide { width: 80%; height: 80vh; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); padding: 20px; display: none; flex-direction: column; justify-content: space-between; }
+        .active { display: flex; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .title { font-size: 2em; font-weight: bold; }
+        .subtitle { font-size: 1.5em; color: gray; }
+        .content { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 1.2em; }
+        .footer { text-align: center; font-size: 0.8em; color: darkgray; border-top: 2px solid #ddd; padding-top: 10px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 10px; }
+        .nav-buttons button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="slide active">
+            <div class="header">
+                <div class="title">{{title}}</div>
+                <img src="logo.png" alt="Logo" height="40">
+            </div>
+            <div class="subtitle">{{subtitle}}</div>
+            <div class="content">{{body}}</div>
+            <div class="footer">{{footer}}</div>
+            <div class="nav-buttons">
+                <button onclick="prevSlide()">Previous</button>
+                <button onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+    </div><script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll(".slide");
+    
+    function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove("active"));
+        slides[index].classList.add("active");
+    }
+    
+    function nextSlide() {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+    }
+    
+    function prevSlide() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+    }
+    
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight") nextSlide();
+        if (event.key === "ArrowLeft") prevSlide();
+    });
+</script>
+
+</body>
+</html>
