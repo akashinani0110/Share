@@ -1,0 +1,157 @@
+import plotly.io as pio
+
+def generate_html_slides(slides, output_file="presentation.html"):
+    """
+    Generates an HTML slide deck with dynamic content and saves it as an HTML file.
+
+    Parameters:
+    slides (list of dict): Each dictionary represents a slide with:
+        - type (str, optional): "divider" for a divider slide, else normal slide.
+        - title (str, optional): Title of the slide.
+        - subtitle (str, optional): Subtitle of the slide.
+        - content (str or dict): Can contain HTML text, an image URL, or a Plotly chart.
+        - footer (str, optional): Footer text.
+    output_file (str): Name of the output HTML file (default: "presentation.html").
+
+    Returns:
+    None
+    """
+
+    slide_template = """
+    <div class="slide">
+        <div class="header">
+            <div>
+                <div class="title">{title}</div>
+                {subtitle_section}
+            </div>
+            <div><img src="logo.png" alt="Logo" style="height:40px;"></div>
+        </div>
+        <div class="content">{content}</div>
+        {footer_section}
+    </div>
+    """
+
+    divider_template = """
+    <div class="slide divider">
+        <div class="content">
+            <img src="logo.png" alt="Logo" style="height:60px;">
+            <h1>{content}</h1>
+        </div>
+    </div>
+    """
+
+    slides_content = ""
+    for slide in slides:
+        if slide.get("type") == "divider":
+            slides_content += divider_template.format(content=slide["content"])
+        else:
+            subtitle_section = f'<div class="subtitle">{slide["subtitle"]}</div>' if "subtitle" in slide else ""
+            footer_section = f'<div class="footer">{slide["footer"]}</div>' if "footer" in slide else ""
+
+            # Handling different content types
+            if isinstance(slide["content"], dict) and slide["content"].get("plotly_chart"):
+                fig = slide["content"]["plotly_chart"]
+                chart_html = pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+                content_html = chart_html
+            elif isinstance(slide["content"], str) and slide["content"].startswith("img:"):
+                image_url = slide["content"].replace("img:", "")
+                content_html = f'<img src="{image_url}" style="max-width: 80%;">'
+            else:
+                content_html = slide["content"]
+
+            slides_content += slide_template.format(
+                title=slide["title"],
+                subtitle_section=subtitle_section,
+                content=content_html,
+                footer_section=footer_section
+            )
+
+    html_template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Presentation</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: black; overflow: hidden; }}
+        .slide-container {{ width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; }}
+        .slide {{ width: 90%; height: 90vh; background: white; box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.3); padding: 40px; display: none; flex-direction: column; justify-content: space-between; border-radius: 10px; }}
+        .divider {{ justify-content: center; text-align: center; }}
+        .active {{ display: flex; }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; }}
+        .title {{ font-size: 2em; font-weight: bold; }}
+        .subtitle {{ font-size: 1.2em; color: gray; }}
+        .content {{ flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 1.4em; text-align: center; }}
+        .footer {{ text-align: left; font-size: 0.8em; color: darkgray; border-top: 2px solid #ddd; padding-top: 10px; }}
+
+        /* Print styles */
+        @media print {{
+            body {{ background-color: white; }}
+            .slide-container {{ display: block; }}
+            .slide {{ width: 100%; height: 100vh; box-shadow: none; display: block !important; page-break-after: always; }}
+            .nav-buttons {{ display: none; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        {slides_content}
+    </div>
+    <div class="nav-buttons">
+        <button onclick="prevSlide()">Previous</button>
+        <button onclick="nextSlide()">Next</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll(".slide");
+
+        function showSlide(index) {{
+            slides.forEach(slide => slide.classList.remove("active"));
+            slides[index].classList.add("active");
+        }}
+
+        function nextSlide() {{
+            if (currentSlide < slides.length - 1) {{
+                currentSlide++;
+                showSlide(currentSlide);
+            }}
+        }}
+
+        function prevSlide() {{
+            if (currentSlide > 0) {{
+                currentSlide--;
+                showSlide(currentSlide);
+            }}
+        }}
+
+        document.addEventListener("keydown", (event) => {{
+            if (event.key === "ArrowRight") nextSlide();
+            if (event.key === "ArrowLeft") prevSlide();
+        }});
+
+        showSlide(0);
+    </script>
+</body>
+</html>"""
+
+    # Save the HTML file
+    with open(output_file, "w", encoding="utf-8") as file:
+        file.write(html_template)
+
+    print(f"Presentation saved as {output_file}. Open it in a browser.")
+
+# Example usage with text, image, chart, and a divider
+import plotly.graph_objects as go
+
+fig = go.Figure(data=[go.Bar(x=["A", "B", "C"], y=[10, 20, 30])])
+
+slides_data = [
+    {"title": "Introduction", "content": "<p>Welcome to the presentation!</p>"},
+    {"type": "divider", "content": "Section 1: Overview"},
+    {"title": "Analysis", "content": "img:chart.png"},
+    {"title": "Data Insights", "content": {"plotly_chart": fig}},
+    {"type": "divider", "content": "Thank You!"}
+]
+
+generate_html_slides(slides_data)
