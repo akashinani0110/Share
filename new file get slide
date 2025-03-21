@@ -1,0 +1,46 @@
+def convert_to_slides(data):
+    """
+    Converts a list of dictionaries into a structured slide data format.
+
+    Parameters:
+    data (list of dict): A list containing dictionaries with optional keys:
+        - "title" (str): The title of the slide.
+        - "content" (str or dict): The content of the slide, which can be text, an image reference, or a Plotly figure.
+        - "type" (str): The type of the slide (e.g., "divider" for section breaks).
+
+    Returns:
+    list of dict: A structured list formatted for slides, where each dictionary represents a slide.
+    """
+    slides_data = []
+    
+    for item in data:
+        slide = {}
+
+        # Add optional fields if they exist in the item
+        if "title" in item:
+            slide["title"] = item["title"]
+        
+        if "content" in item:
+            slide["content"] = item["content"]
+        
+        if "type" in item:
+            slide["type"] = item["type"]
+        
+        slides_data.append(slide)
+    
+    return slides_data
+
+# Example input dictionary
+input_data = [
+    {"title": "Introduction", "content": "<p>Welcome to the presentation!</p>"},
+    {"type": "divider", "content": "Section 1: Overview"},
+    {"title": "Analysis", "content": "img:chart.png"},
+    {"title": "Data Insights", "content": {"plotly_chart": "fig"}},
+    {"type": "divider", "content": "Thank You!"}
+]
+
+# Convert dictionary to slides format
+slides_data = convert_to_slides(input_data)
+
+# Print formatted slides data
+print(slides_data)
