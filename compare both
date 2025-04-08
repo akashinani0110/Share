@@ -1,0 +1,70 @@
+#' Compare Two RDS Files for Structural and Value Equality
+#'
+#' This function reads and compares two `.rds` files recursively.
+#' It checks if the data types, structure, and values are identical.
+#' If the objects are lists, it recursively checks each element,
+#' including nested lists, data frames, and atomic values.
+#'
+#' The comparison stops and throws an error when a mismatch is found,
+#' indicating the path and nature of the mismatch.
+#'
+#' @param file1 Character. Path to the first `.rds` file.
+#' @param file2 Character. Path to the second `.rds` file.
+#'
+#' @return TRUE if both RDS files match completely; otherwise, it throws an error.
+#' @examples
+#' \dontrun{
+#' compare_rds_files("precomputed1.rds", "precomputed2.rds")
+#' }
+#' @export
+compare_rds_files <- function(file1, file2) {
+  obj1 <- readRDS(file1)
+  obj2 <- readRDS(file2)
+
+  compare_objects(obj1, obj2)
+}
+
+#' Recursively Compare Two R Objects
+#'
+#' Internal function used by `compare_rds_files` to perform deep comparison.
+#'
+#' @param obj1 The first object to compare.
+#' @param obj2 The second object to compare.
+#' @param path Internal string used to track the current comparison path (default is "").
+#'
+#' @return TRUE if objects match; otherwise, throws an error.
+compare_objects <- function(obj1, obj2, path = "") {
+  type1 <- class(obj1)
+  type2 <- class(obj2)
+
+  if (!identical(type1, type2)) {
+    stop(paste0("Type mismatch at ", path, ": ", paste(type1, collapse = ","), 
+                " != ", paste(type2, collapse = ",")))
+  }
+
+  if (is.list(obj1)) {
+    if (!identical(names(obj1), names(obj2))) {
+      stop(paste0("List names mismatch at ", path))
+    }
+
+    for (name in names(obj1)) {
+      compare_objects(obj1[[name]], obj2[[name]], paste0(path, "$", name))
+    }
+  } else if (is.data.frame(obj1)) {
+    if (!identical(dim(obj1), dim(obj2))) {
+      stop(paste0("Data frame dimension mismatch at ", path))
+    }
+    if (!identical(names(obj1), names(obj2))) {
+      stop(paste0("Data frame column names mismatch at ", path))
+    }
+    if (!identical(obj1, obj2)) {
+      stop(paste0("Data frame values mismatch at ", path))
+    }
+  } else {
+    if (!identical(obj1, obj2)) {
+      stop(paste0("Value mismatch at ", path, ": ", obj1, " != ", obj2))
+    }
+  }
+
+  return(TRUE)
+}
