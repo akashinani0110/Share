@@ -1,0 +1,70 @@
+#' Compare Two RDS Files with Detailed Validation Logs
+#'
+#' This function loads two `.rds` files and deeply compares their content,
+#' printing each validation step including datatype and value checks.
+#' If any mismatch is found, it stops and reports the mismatch path.
+#'
+#' @param file1 Character. Path to the first `.rds` file.
+#' @param file2 Character. Path to the second `.rds` file.
+#'
+#' @return TRUE if all checks pass, otherwise it stops with an error.
+#' @export
+compare_rds_files <- function(file1, file2) {
+  obj1 <- readRDS(file1)
+  obj2 <- readRDS(file2)
+
+  compare_objects(obj1, obj2)
+}
+
+#' Recursive Comparison with Logging
+#'
+#' @param obj1 First object to compare
+#' @param obj2 Second object to compare
+#' @param path Internal path string for nested tracking
+#'
+#' @return TRUE if all matches succeed; otherwise stops with mismatch error.
+compare_objects <- function(obj1, obj2, path = "") {
+  type1 <- class(obj1)
+  type2 <- class(obj2)
+
+  print(paste0("Checking type at ", path, ": ", paste(type1, collapse = ","), " vs ", paste(type2, collapse = ",")))
+  if (!identical(type1, type2)) {
+    stop(paste0("Type mismatch at ", path, ": ", type1, " != ", type2))
+  }
+  print(paste0("Type matched at ", path))
+
+  if (is.list(obj1)) {
+    if (!identical(names(obj1), names(obj2))) {
+      stop(paste0("List names mismatch at ", path))
+    }
+    print(paste0("List names matched at ", path, ": ", paste(names(obj1), collapse = ", ")))
+
+    for (name in names(obj1)) {
+      compare_objects(obj1[[name]], obj2[[name]], paste0(path, "$", name))
+    }
+  } else if (is.data.frame(obj1)) {
+    print(paste0("Checking data frame structure at ", path))
+    if (!identical(dim(obj1), dim(obj2))) {
+      stop(paste0("Data frame dimension mismatch at ", path))
+    }
+    print(paste0("Dimensions matched at ", path, ": ", paste(dim(obj1), collapse = "x")))
+
+    if (!identical(names(obj1), names(obj2))) {
+      stop(paste0("Data frame column names mismatch at ", path))
+    }
+    print(paste0("Column names matched at ", path, ": ", paste(names(obj1), collapse = ", ")))
+
+    if (!identical(obj1, obj2)) {
+      stop(paste0("Data frame values mismatch at ", path))
+    }
+    print(paste0("Data frame values matched at ", path))
+  } else {
+    print(paste0("Checking values at ", path, ": ", obj1, " vs ", obj2))
+    if (!identical(obj1, obj2)) {
+      stop(paste0("Value mismatch at ", path, ": ", obj1, " != ", obj2))
+    }
+    print(paste0("Values matched at ", path))
+  }
+
+  return(TRUE)
+}
