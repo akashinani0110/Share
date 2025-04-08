@@ -1,0 +1,115 @@
+#' Compare Two RDS Files with Type-Specific Validation and Logging
+#'
+#' This function loads and compares two `.rds` files, recursively validating
+#' data structures and values. It performs type-specific checks and logs
+#' each validation step. NULLs are treated as matching if both are NULL.
+#'
+#' @param file1 Character. Path to the first .rds file.
+#' @param file2 Character. Path to the second .rds file.
+#' @return TRUE if all validations pass; otherwise stops with an error.
+#' @export
+compare_rds_files <- function(file1, file2) {
+  obj1 <- readRDS(file1)
+  obj2 <- readRDS(file2)
+  compare_objects(obj1, obj2)
+}
+
+compare_objects <- function(obj1, obj2, path = "") {
+  # NULL handling
+  if (is.null(obj1) && is.null(obj2)) {
+    print(paste0("Both NULL at ", path, " — matched"))
+    return(TRUE)
+  } else if (is.null(obj1) || is.null(obj2)) {
+    stop(paste0("Mismatch at ", path, ": one is NULL, other is not"))
+  }
+
+  type1 <- class(obj1)
+  type2 <- class(obj2)
+
+  print(paste0("Checking type at ", path, ": ", paste(type1, collapse = ","), " vs ", paste(type2, collapse = ",")))
+  if (!identical(type1, type2)) {
+    stop(paste0("Type mismatch at ", path, ": ", paste(type1, collapse = ","), " != ", paste(type2, collapse = ",")))
+  }
+  print(paste0("Type matched at ", path))
+
+  if (is.data.frame(obj1)) {
+    validate_dataframe(obj1, obj2, path)
+  } else if (is.matrix(obj1)) {
+    validate_matrix(obj1, obj2, path)
+  } else if (is.list(obj1)) {
+    validate_list(obj1, obj2, path)
+  } else if (is.factor(obj1)) {
+    validate_factor(obj1, obj2, path)
+  } else if (is.character(obj1)) {
+    validate_atomic(obj1, obj2, path, type = "character")
+  } else if (is.numeric(obj1)) {
+    validate_atomic(obj1, obj2, path, type = "numeric")
+  } else if (is.logical(obj1)) {
+    validate_atomic(obj1, obj2, path, type = "logical")
+  } else {
+    stop(paste0("Unsupported type at ", path, ": ", type1))
+  }
+
+  return(TRUE)
+}
+
+validate_list <- function(list1, list2, path) {
+  if (!identical(names(list1), names(list2))) {
+    stop(paste0("List names mismatch at ", path))
+  }
+  print(paste0("List names matched at ", path, ": ", paste(names(list1), collapse = ", ")))
+
+  for (name in names(list1)) {
+    compare_objects(list1[[name]], list2[[name]], paste0(path, "$", name))
+  }
+}
+
+validate_dataframe <- function(df1, df2, path) {
+  print(paste0("Validating data frame at ", path))
+  if (!identical(dim(df1), dim(df2))) {
+    stop(paste0("Data frame dimension mismatch at ", path))
+  }
+  if (!identical(names(df1), names(df2))) {
+    stop(paste0("Data frame column names mismatch at ", path))
+  }
+  for (col in names(df1)) {
+    compare_objects(df1[[col]], df2[[col]], paste0(path, "$", col))
+  }
+  print(paste0("Data frame matched at ", path))
+}
+
+validate_matrix <- function(mat1, mat2, path) {
+  print(paste0("Validating matrix at ", path))
+  if (!identical(dim(mat1), dim(mat2))) {
+    stop(paste0("Matrix dimension mismatch at ", path))
+  }
+  if (!identical(typeof(mat1), typeof(mat2))) {
+    stop(paste0("Matrix type mismatch at ", path))
+  }
+  if (!identical(mat1, mat2)) {
+    stop(paste0("Matrix values mismatch at ", path))
+  }
+  print(paste0("Matrix matched at ", path))
+}
+
+validate_factor <- function(fac1, fac2, path) {
+  print(paste0("Validating factor at ", path))
+  if (!identical(levels(fac1), levels(fac2))) {
+    stop(paste0("Factor levels mismatch at ", path))
+  }
+  if (!identical(as.character(fac1), as.character(fac2))) {
+    stop(paste0("Factor values mismatch at ", path))
+  }
+  print(paste0("Factor matched at ", path))
+}
+
+validate_atomic <- function(vec1, vec2, path, type = "atomic") {
+  print(paste0("Validating ", type, " vector at ", path))
+  if (!identical(length(vec1), length(vec2))) {
+    stop(paste0(type, " vector length mismatch at ", path))
+  }
+  if (!identical(vec1, vec2)) {
+    stop(paste0(type, " vector value mismatch at ", path, ": ", toString(vec1), " != ", toString(vec2)))
+  }
+  print(paste0(type, " vector matched at ", path))
+}
