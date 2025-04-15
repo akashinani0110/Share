@@ -1,0 +1,31 @@
+Absolutely! Here's a more professional and polished version of your original description:
+
+
+---
+
+Test Case Strategy
+
+To validate code changes and ensure output consistency, a structured testing approach has been implemented using designated folders for input, expected output, and actual results.
+
+Folder Structure:
+
+input/test/: Contains input files for test cases.
+
+output/test/: Stores the expected output files.
+
+output/test_results/: Holds the actual output generated during test execution.
+
+
+Test Mode: A test parameter has been introduced to activate test mode. When enabled, the program reads input files from input/test/, processes them, and writes the results to output/test_results/.
+
+Test Execution: A dedicated test_run() function has been implemented to:
+
+Execute the test cases using the test input files.
+
+Generate corresponding outputs.
+
+Automatically compare the actual results in test_results with the expected outputs in test to verify correctness.
+
+
+This setup helps maintain accuracy and reliability across code changes by ensuring that results consistently match expected outcomes.
+
