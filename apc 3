@@ -1,0 +1,290 @@
+#' Build Summary Statistic Charts for APC Dashboard
+#'
+#' Generates summary statistic tables and charts at the program and plan level
+#' for key performance indicators such as return, risk, or other custom metrics.
+#'
+#' @author Jason Park
+#' @date 02/01/2022
+#' @contact jisu.park@bofa.com
+#'
+#' @param keystatData A data.table or data.frame containing key statistics per plan or portfolio.
+#' @param keyStatColumn A string indicating the specific column in \code{keystatData} to use for analysis (e.g., "median_val").
+#' @param planLabels A named list or vector that maps program names to vectors of plan IDs.
+#' @param tableLabels A named vector of column names to display in the summary tables.
+#' @param chartTitle A string used as the title of the generated charts.
+#' @param portfoliostatData A list or data.table of portfolio statistics used for plotting/charting, if applicable.
+#'
+#' @return A list containing:
+#' \itemize{
+#'   \item \code{program}: A list of formatted summary tables grouped by program.
+#'   \item \code{plan}: Chart data for each plan based on the key statistic.
+#' }
+#'
+#' @details
+#' - Orders key statistics by descending median values for visual prioritization.
+#' - Maps plan names using \code{planLabels} for display.
+#' - Applies rounding and formatting to
+
+
+
+
+
+
+
+
+
+
+#' Extract Start and End Dates from APC Portfolio Data
+#'
+#' This function processes a nested list of plan and portfolio-level data to retrieve
+#' the start and end dates for each portfolio, based on their respective metadata.
+#'
+#' @param datalistSpf A nested list where each top-level element represents a plan, 
+#' and each plan contains multiple portfolios. Each portfolio is expected to include 
+#' metadata with components such as `ID`, `start`, and `end`.
+#'
+#' @return A named list with two elements:
+#' \describe{
+#'   \item{\code{start}}{A named list containing start dates for each portfolio, 
+#'   with portfolio IDs as names.}
+#'   \item{\code{end}}{A named list containing end dates for each portfolio, 
+#'   also named by portfolio IDs.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#'   dateInfo <- requiredDates(apcDataList)
+#'   startDates <- dateInfo$start
+#'   endDates <- dateInfo$end
+#' }
+#'
+#' @export
+
+
+
+
+
+
+
+
+
+
+#' Retrieve Last Updated Dates for Funds
+#'
+#' This function extracts the `last_updated` dates and corresponding portfolio IDs 
+#' from a list of fund-related metadata within each plan.
+#'
+#' @param datalistSplans A list containing plan data. Each plan is expected to 
+#' contain a list of funds, where each fund has `Sid` and `last_updated` fields.
+#'
+#' @return A named list of last updated dates, where each name corresponds to a portfolio ID.
+#'
+#' @examples
+#' \dontrun{
+#'   fundUpdateDates <- fundDates(datalistSplans)
+#'   fundUpdateDates[["ABC123"]]  # Returns the last updated date for portfolio ID "ABC123"
+#' }
+#'
+#' @export
+
+
+
+
+
+
+
+#' Construct Tab UI Components for a Dashboard
+#'
+#' This function builds a set of UI tab components along with the necessary JavaScript 
+#' to control their visibility and behavior for a tab-based navigation system.
+#'
+#' @param tabList A list of tab definitions. Each element should contain a `header` and `content` field,
+#'                where `header` is the tab ID and `content` is the corresponding section to show/hide.
+#' @param initialTabIndex An integer specifying the index of the tab that should be visible initially. Default is 1.
+#'
+#' @return A list with two elements:
+#' \describe{
+#'   \item{JS}{A character string containing JavaScript code to control tab behavior.}
+#'   \item{HTML}{An HTML object (using `shiny::div`) representing the UI layout for the tabs.}
+#' }
+#'
+#' @details
+#' This function is designed to work with Semantic UI tabs and hides or shows content divs based on user selection.
+#' JavaScript click handlers are dynamically constructed and attached to tab headers for interaction.
+#'
+#' @examples
+#' \dontrun{
+#'   tabConfig <- list(
+#'     list(header = "tab1", content = "tab1Content"),
+#'     list(header = "tab2", content = "tab2Content")
+#'   )
+#'   tabs <- ConstructTabObjects(tabConfig, initialTabIndex = 1)
+#'   shiny::tags$head(tags$script(HTML(tabs$JS)))
+#'   tabs$HTML
+#' }
+#'
+#' @export
+
+
+
+
+
+
+
+#' Compute Portfolio Alignments Relative to Benchmarks in Asset Allocation
+#'
+#' This function computes portfolio alignments relative to benchmark indices based on asset allocation data.
+#' It loads necessary data, checks for allocation consistency, and merges the data for further analysis.
+#'
+#' @param indexMappingDataPath A string indicating the file path of the index mapping data.
+#' @param assetData A data.table containing asset allocation data.
+#' @param alignmentMetricsPath A string indicating the file path where alignment metrics are stored.
+#' @param holdingsData A data.table containing portfolio holdings data.
+#' @param planIdswithChanges A vector of plan IDs for which alignments need to be computed.
+#'
+#' @return A list with three components:
+#' \describe{
+#'   \item{data}{A data.table containing the merged asset allocation data.}
+#'   \item{imap}{The index mapping data table with cash included.}
+#'   \item{matrix}{A matrix of converted alignment data.}
+#'   \item{config}{Configuration used for alignment groups.}
+#' }
+#'
+#' @details
+#' This function verifies that asset allocations sum to 1 for each portfolio and stops execution if any
+#' errors are detected. It appends a row for cash mapping and merges the current asset allocation data with
+#' the index mapping data. The final output includes the merged data, the mapping for each index, and a
+#' matrix representation of the alignment.
+#'
+#' @examples
+#' \dontrun{
+#'   alignmentOutput <- ComputePortfolioAlignments(
+#'     indexMappingDataPath = "path/to/index_mapping_data.csv",
+#'     assetData = assetAllocData,
+#'     alignmentMetricsPath = "path/to/alignment_metrics.rds",
+#'     holdingsData = holdingsData,
+#'     planIdswithChanges = c(1, 2, 3)
+#'   )
+#'   # Access the merged data
+#'   mergedData <- alignmentOutput$data
+#' }
+#'
+#' @export
+
+
+
+
+#' Build HTML Table of Icons Based on Status
+#'
+#' This function generates an HTML table of icons representing the status of certain elements based on the provided 
+#' status values. It assigns different icons and colors for various status levels, then merges this information with 
+#' the original data table.
+#'
+#' @param iconDataTable A data.table containing a `status` column with values ranging from 0 to 4, representing the 
+#' status of various elements.
+#'
+#' @return A data.table with an additional column `highlightconsHTML`, which contains HTML code for displaying icons 
+#' based on the `status` values.
+#'
+#' @details
+#' The function uses a set of predefined icons and colors for different status levels. It generates HTML code for each 
+#' status and appends it to the original data.table. The icons are based on Font Awesome and their colors and sizes are 
+#' customized for each status.
+#'
+#' @examples
+#' \dontrun{
+#'   # Example input data.table
+#'   iconData <- data.table(status = c(0, 1, 2, 3, 4))
+#'
+#'   # Generate the icon table
+#'   iconTable <- BuildUnusedIconTables(iconData)
+#'
+#'   # Check the resulting table with HTML codes for icons
+#'   print(iconTable)
+#' }
+#'
+#' @export
+
+
+
+
+#' Preprocess and Load APC Data for Analysis
+#'
+#' This function is used to preprocess and load various data sets for portfolio analysis and performance tracking. 
+#' The function can recompute the data or read from an existing output path, depending on the `recomputeData` flag. 
+#' It loads and processes multiple data sources, including plan, asset, portfolio, and performance metrics data.
+#'
+#' @param recomputeData A logical value indicating whether the data should be recomputed. If `TRUE`, it will reload 
+#' and preprocess the data. If `FALSE`, it reads the data from an existing RDS file specified by `outputPath`. Default is `TRUE`.
+#' 
+#' @param isProduction A logical value indicating whether the function is being run in a production environment. 
+#' This parameter is not used in the current implementation but can be used to modify behavior for production runs. Default is `FALSE`.
+#'
+#' @param planDataPath A string indicating the file path to the plan data (JSON format).
+#' 
+#' @param assetDataPath A string indicating the file path to the asset data.
+#' 
+#' @param portfolioDataPath A string indicating the file path to the portfolio data.
+#' 
+#' @param sharedPfDataPath A string indicating the file path to the shared portfolio data.
+#' 
+#' @param indexMetadatapath A string indicating the file path to the index metadata.
+#' 
+#' @param portfolioMetadataPath A string indicating the file path to the portfolio metadata.
+#' 
+#' @param indexMappingDataPath A string indicating the file path to the index mapping data.
+#' 
+#' @param keyMetricsTimeSeriesPath A string indicating the file path to the key metrics time series data.
+#' 
+#' @param alignmentMetricsPath A string indicating the file path to the alignment metrics data.
+#' 
+#' @param availFundsDataPath A string indicating the file path to the available funds data.
+#' 
+#' @param chronologyDataPath A string indicating the file path to the chronology data.
+#' 
+#' @param performanceStatsPath A string indicating the file path to the performance stats data.
+#' 
+#' @param targetRiskPfIds A vector of portfolio IDs for which risk analysis is required.
+#' 
+#' @param returnsDataPath A string indicating the file path to the returns data.
+#' 
+#' @param outputPath A string indicating the file path where the output list should be saved or read from.
+#' 
+#' @return A list containing various processed data objects, including plan IDs, key statistics, holdings, performance stats, 
+#' available fund dates, and more. If `recomputeData` is `FALSE`, the function will return the previously saved output.
+#' 
+#' @details
+#' The function performs the following steps:
+#' \itemize{
+#'   \item Loads multiple data sources (plan data, asset data, portfolio data, etc.)
+#'   \item Computes necessary key statistics and metrics for the portfolios
+#'   \item Creates a list of output objects, including key statistics, holdings, and performance data
+#'   \item Saves the output as an RDS file if `recomputeData` is `TRUE`, or reads from the file if `FALSE`
+#' }
+#'
+#' @examples
+#' \dontrun{
+#'   # Example usage of the function
+#'   result <- PreprocessAPCData(
+#'     recomputeData = TRUE,
+#'     planDataPath = "path/to/planData.json",
+#'     assetDataPath = "path/to/assetData.csv",
+#'     portfolioDataPath = "path/to/portfolioData.csv",
+#'     sharedPfDataPath = "path/to/sharedPfData.csv",
+#'     indexMetadatapath = "path/to/indexMetadata.csv",
+#'     portfolioMetadataPath = "path/to/portfolioMetadata.csv",
+#'     indexMappingDataPath = "path/to/indexMapping.csv",
+#'     keyMetricsTimeSeriesPath = "path/to/keyMetrics.csv",
+#'     alignmentMetricsPath = "path/to/alignmentMetrics.csv",
+#'     availFundsDataPath = "path/to/availFundsData.csv",
+#'     chronologyDataPath = "path/to/chronologyData.csv",
+#'     performanceStatsPath = "path/to/performanceStats.csv",
+#'     targetRiskPfIds = c(101, 102),
+#'     returnsDataPath = "path/to/returnsData.csv",
+#'     outputPath = "path/to/output.rds"
+#'   )
+#'   print(result)
+#' }
+#'
+#' @export
+
