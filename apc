@@ -1,0 +1,213 @@
+#' Build Asset Grids and Glide Paths for CIO Portfolios
+#'
+#' This function processes portfolio holdings data to generate two types of visual outputs:
+#' (1) an asset grid table for Target Risk portfolios and (2) a glide path stacked bar chart
+#' for Target Date portfolios. It organizes and summarizes asset weights across portfolio types,
+#' formats them into structured tables and charts, and applies styling options including
+#' indentation, background shading, and color bars.
+#'
+#' @param pfHoldingsData A `data.table` containing portfolio holdings with columns such as:
+#' `plan_id`, `pf_id`, `pf_name`, `pf_type`, `asset_id`, `name`, `weight`, `global_cat`, `mstar_cat`.
+#' @param colorBarConfigs A named list of configuration options for color bar formatting,
+#' used to style the percentage-weight columns in the asset grid table.
+#'
+#' @return A named list with two elements:
+#' \describe{
+#'   \item{targetrisk}{A list containing the asset grid data structure for Target Risk portfolios,
+#'   formatted for use in `cio::table`.}
+#'   \item{targetDate}{A list containing the glide path data for Target Date portfolios,
+#'   formatted for use in a stacked column chart (e.g., via `cio::PlotCIOHi`).}
+#' }
+#'
+#' @details
+#' - Organizes data hierarchically by `global_cat`, `mstar_cat`, and `name`.
+#' - Applies indentation styles to reflect category levels in the table.
+#' - Aggregates asset weights and builds vectors for each portfolio type.
+#' - Includes logic to handle zero-weight assets and formats fund names.
+#'
+#' @examples
+#' \dontrun{
+#' result <- BuildAPCAssetGrids(portfolio_data, color_config)
+#' print(result$targetrisk)
+#' print(result$targetDate)
+#' }
+#'
+#' @import data.table
+#' @import magrittr
+#' @export
+
+
+
+
+
+
+-------------------
+
+
+#' Build Available Fund Tables for CIO Report
+#'
+#' This function processes a set of fund metadata along with selected and available fund IDs by plan.
+#' It returns a formatted table structure for rendering available funds, including expense and tracking metrics,
+#' and applies custom styling such as alignment, percentage formatting, and column widths.
+#'
+#' @param fundData A `data.table` containing fund-level metadata including fields like
+#' `asset_id`, `type`, `global_cat`, `mstar_cat`, `net_exp_ratio`, and `tracking_error`.
+#' @param fundIdsByPlan A named list where each element is a vector of fund IDs available to a given plan.
+#' @param selectedFundIdsByPlan A named list of fund IDs that have been selected (or pre-chosen) per plan.
+#' @param colorBarConfigs A list of color bar configurations for customizing table visuals (optional).
+#'
+#' @return A named list where each entry corresponds to a plan and contains a table-ready list object with:
+#' \describe{
+#'   \item{data}{A `data.table` of available funds sorted and cleaned.}
+#'   \item{rightAlignedColumns}{Indices of columns that should be right-aligned (e.g., percentages).}
+#'   \item{centerAlignedColumns}{Indices of columns that should be center-aligned (e.g., status icons).}
+#'   \item{percentColumns}{Indices of columns formatted as percentages.}
+#'   \item{percentDigits}{Number of decimal places for percentage columns.}
+#'   \item{columnwidths}{Named list defining column widths for visual layout.}
+#' }
+#'
+#' @details
+#' - Funds are categorized by `global_cat` and `mstar_cat`.
+#' - Percentage columns such as net expense ratio and tracking error are scaled and formatted.
+#' - Rows with missing or excluded asset IDs (e.g., `"999"`) are removed.
+#' - Table column names and order are standardized.
+#'
+#' @examples
+#' \dontrun{
+#' fundTables <- BuildAvailFundTables(fundData, fundIdsByPlan, selectedFundIdsByPlan, colorBarConfigs)
+#' print(fundTables[["PlanA"]]$data)
+#' }
+#'
+#' @import data.table
+#' @import magrittr
+#' @export
+
+
+
+
+
+---------------------------
+
+
+
+
+#' Build Chronology Plot of APC Activities
+#'
+#' Generates a Highcharter-based chronology timeline plot summarizing Asset Planning Committee (APC)
+#' portfolio activities (e.g., rebalancing, construction, reallocations) for various plans across time.
+#'
+#' @param chronologyData A `data.table` or `data.frame` containing columns:
+#' \describe{
+#'   \item{name}{Plan name}
+#'   \item{id}{Plan ID}
+#'   \item{event}{Activity type (e.g., "Initial portfolio construction", "Quarterly rebalancing", etc.)}
+#'   \item{date}{Event date}
+#' }
+#' @param startDate A `Date` object indicating the minimum date to display on the timeline.
+#' @param endDate A `Date` object indicating the maximum date to display on the timeline.
+#'
+#' @return A `highcharter` object rendering the chronology timeline.
+#'
+#' @details
+#' - Each activity type is color-coded using a preset scheme.
+#' - Plans are labeled as `name (id)` for clarity.
+#' - Events are grouped and styled for clarity using custom Highcharts JS formatters.
+#' - Event types include:
+#'   - "Initial portfolio construction"
+#'   - "Quarterly rebalancing"
+#'   - "Rebalancing due to change in plan investments menu"
+#'   - "Annual reallocation"
+#'   - "No change"
+#'
+#' @examples
+#' \dontrun{
+#' chronologyPlot <- BuildChronologyPlot(chronologyData, as.Date("2021-01-01"), as.Date("2023-12-31"))
+#' chronologyPlot
+#' }
+#'
+#' @import data.table
+#' @import magrittr
+#' @import highcharter
+#' @export
+
+
+
+
+----_-------------------
+
+
+#' Build Chronology Table of APC Activities
+#'
+#' Creates a paginated data table summarizing the chronology of Asset Planning Committee (APC) activities,
+#' including portfolio events, affected plans, and associated fund changes.
+#'
+#' @param chronologyData A `data.table` or `data.frame` containing columns:
+#' \describe{
+#'   \item{event}{Activity type (e.g., rebalancing, construction)}
+#'   \item{name}{Plan name}
+#'   \item{date}{Date of the activity}
+#'   \item{id}{Plan ID}
+#'   \item{added_funds}{Comma-separated list of added funds (if any)}
+#'   \item{removed_funds}{Comma-separated list of removed funds (if any)}
+#'   \item{is_demo_plan}{Logical indicating if the plan is a demo}
+#' }
+#' @param tableLabels A named character vector mapping readable column names to internal data column names.
+#' Defaults to:
+#' \code{c('Activity' = 'event', 'Plan Name' = 'name', 'Date' = 'date',
+#' 'Plan ID' = 'id', 'Added Fund(s)' = 'added_funds', 'Removed Fund(s)' = 'removed_funds')}
+#' @param columnwidths A named list mapping CSS column widths (e.g., '200px') to table column positions.
+#' @param maxPageLength Integer specifying the maximum number of rows to show per page. Default is 15.
+#'
+#' @return A named list of data tables for all plans and production plans, formatted for use in UI rendering.
+#'
+#' @examples
+#' \dontrun{
+#' chronologyTables <- BuildChronologyTable(chronologyData)
+#' chronologyTables$prod  # View production-only plan table
+#' }
+#'
+#' @import data.table
+#' @export
+
+
+
+----------------------------------
+
+
+#' Build PCC Report-out Document
+#'
+#' Generates a quarterly PCC (Portfolio Construction Committee) report-out document summarizing APC (Automated Portfolio Construction)
+#' activities, including summaries, asset grid visuals, and appendix content. The report is rendered as both HTML and PDF.
+#'
+#' @param startDate Date object indicating the beginning of the report period.
+#' @param endDate Date object indicating the end of the report period.
+#' @param generationDate Date object indicating when the report is generated.
+#' @param shinyVarsPath File path to the precomputed shiny variables RDS file. Default is \code{file.path("3_shiny", "inputs", "precomputedvariables.RDS")}.
+#'
+#' @return No return value. Generates and saves the report as HTML and PDF files in the specified output directory.
+#'
+#' @details
+#' - Loads precomputed data and APC chronology.
+#' - Assembles multiple report components including summary pages, asset grids, and appendix.
+#' - Calls `cio::report` to generate the final output document.
+#'
+#' @examples
+#' \dontrun{
+#' BuildPCCReportout(
+#'   startDate = as.Date("2022-01-01"),
+#'   endDate = as.Date("2022-03-31"),
+#'   generationDate = Sys.Date()
+#' )
+#' }
+#'
+#' @import data.table
+#' @importFrom rio import
+#' @importFrom cio report
+#' @export
+
+
+
+
+-------------------
+
+
