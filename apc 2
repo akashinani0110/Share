@@ -1,0 +1,137 @@
+#' Build Portfolio Asset Allocation Objects
+#'
+#' Constructs visual objects for asset allocation charts and exposure alignment tables, used in PCC and APC reports.
+#'
+#' @param assetAllocData A list containing:
+#'   \itemize{
+#'     \item \code{data}: A \code{data.table} of asset allocation and alignment data.
+#'     \item \code{config}: A list defining levels, priority, and formatting details for asset categories.
+#'   }
+#'
+#' @return A list with components:
+#'   \itemize{
+#'     \item \code{allocation}: Chart data object for asset allocation.
+#'     \item \code{alignment}: Table data object for alignment of exposures.
+#'     \item \code{footnote}: Optional footnote for the alignment table.
+#'   }
+#'
+#' @details
+#' - Applies indentation and formatting based on asset hierarchy level.
+#' - Configures percentage columns and color bars for deviation from targets.
+#' - Outputs HTML-ready objects with proper alignment, sorting, and layout.
+#'
+#' @examples
+#' \dontrun{
+#' BuildPortfolioAssetAllocObjs(assetAllocData)
+#' }
+#'
+#' @import data.table
+#' @importFrom magrittr %>%
+#' @export
+
+
+
+
+-------------
+
+
+#' Build Portfolio Holding Charts
+#'
+#' Constructs composition charts and tables for portfolio holdings,
+#' sorted by asset categories and weighted allocations.
+#'
+#' @param holdingsData A named list of data.tables, each representing holdings for a portfolio segment (e.g., 'pf', 'benchmark').
+#' @param colorBarConfigs A named list that defines positive/negative color bar configurations for visualization.
+#'
+#' @return A list of lists, each containing:
+#'   \itemize{
+#'     \item \code{chart}: A chart-ready data object for the portfolio segment.
+#'     \item \code{table}: A table-ready data object with alignment and formatting settings.
+#'   }
+#'
+#' @details
+#' - Sorts fund data by global and Morningstar categories.
+#' - Orders holdings by weight.
+#' - Formats holding tables with configurable column widths, colors, and number formatting.
+#' - Automatically removes "Change in Weight" column if portfolio is at inception.
+#'
+#' @examples
+#' \dontrun{
+#' BuildPortfolioHoldingCharts(holdingsData, colorBarConfigs)
+#' }
+#'
+#' @import data.table
+#' @importFrom magrittr %>%
+#' @export
+
+
+-----------------------------
+
+
+#' Build Portfolio Statistics Tables
+#'
+#' Generates plan-level and portfolio-level tables for return, risk, and risk-adjusted return metrics.
+#'
+#' @param portfoliostatData A named list containing statistical summary data for each plan and portfolio.
+#' @param colorBarConfigs A list of color configurations for displaying positive and negative metrics in the table.
+#'
+#' @return A list containing:
+#' \itemize{
+#'   \item \code{plan}: A table object for plan-level statistics.
+#'   \item \code{pf}: A table object for portfolio-level statistics.
+#' }
+#'
+#' @details
+#' - Computes percentage columns for returns and risks such as annual return, max drawdown, and expected shortfall.
+#' - Aligns data for readability with right-aligned numeric columns.
+#' - Applies color bars to indicate magnitude and sign of key metrics.
+#' - Handles column formatting including widths and digit precision.
+#'
+#' @examples
+#' \dontrun{
+#' BuildPortfolioStatTables(portfoliostatData, colorBarConfigs)
+#' }
+#'
+#' @import data.table
+#' @importFrom magrittr %>%
+#' @export
+
+
+
+---------------------
+
+
+#' Build Risk Attribution Charts and Summary Tables
+#'
+#' Constructs risk attribution charts and summary tables for plan and portfolio levels based on misfit and active risks.
+#'
+#' @author Jason Park
+#' @date 12/03/2021
+#' @contact jisu.park@bofa.com
+#'
+#' @param riskAttrData A data.table containing risk attribution metrics such as active risk and misfit risk for portfolios or plans.
+#' @param portfoliostatData A list or table containing portfolio statistics used for augmenting the risk attribution.
+#' @param asofDates A vector of dates indicating the 'as of' time for which the data is relevant.
+#' @param planLabels A named vector or list for mapping plan IDs to readable labels.
+#'
+#' @return A list with:
+#' \itemize{
+#'   \item \code{tableData}: A summary table of misfit and active risks by plan.
+#'   \item \code{chartDataList}: A named list of risk attribution chart data categorized by program, plan, and portfolio.
+#' }
+#'
+#' @details
+#' - Assigns custom colors for different risk components (e.g., total, active, misfit).
+#' - Flags intermediate and total sums for aggregation visualization.
+#' - Labels each plan by combining plan name and ID.
+#' - Returns a formatted summary table and prepared chart input data.
+#'
+#' @import data.table
+#' @importFrom magrittr %>%
+#' @export
+
+
+
+---------------------
+
+
