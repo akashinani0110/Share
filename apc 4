@@ -1,0 +1,50 @@
+#' Compute Tracking Error Attribution for Portfolios
+#'
+#' Computes ex-post tracking error and decomposes risk attribution across portfolios and their benchmark indices.
+#' This function integrates portfolio holdings, benchmark holdings, returns, and metadata to calculate tracking error,
+#' active risk, and misfit risk for each fund in the portfolio. It also determines whether a full recomputation is needed 
+#' based on reallocation or rebalancing status.
+#'
+#' @param pfHoldings A data.table containing portfolio holdings, including asset IDs, weights, and benchmark mappings.
+#' @param bmkHoldings A data.table containing benchmark holdings data aligned to the portfolios.
+#' @param returnsDataPath A string representing the file path to the returns data in Feather format.
+#' @param currentData A data.table with the existing risk attribution data to be merged with newly computed values.
+#' @param availableFunds A data.table of available fund information including benchmark IDs.
+#' @param assetTbl A data.table of asset-level data with monthly returns.
+#' @param portfolioMetaData A data.table with metadata about portfolios, such as portfolio type and rebalancing status.
+#' @param returnLength An integer specifying how many months of returns to use for the attribution (default is 36 months).
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{pf}{A data.table with risk attribution data per portfolio including tracking error, active risk, and misfit risk.}
+#'   \item{footnote}{A string describing the time period used in tracking error calculation.}
+#'   \item{fund}{A data.table of available funds with appended tracking errors.}
+#'   \item{updatedPlans}{A vector of plan IDs for which attribution was recalculated.}
+#'   \item{refDate}{A Date object indicating the last date in the return window used.}
+#' }
+#'
+#' @details
+#' - Reads returns data via Python (using `reticulate`) from a Feather file.
+#' - Filters out funds without benchmarks or with missing returns.
+#' - Calculates tracking error as the standard deviation of excess returns.
+#' - Distinguishes between full and partial recomputation based on portfolio status.
+#'
+#' @examples
+#' \dontrun{
+#'   result <- ComputeTrackingErrorAttribution(
+#'     pfHoldings = portfolioHoldings,
+#'     bmkHoldings = benchmarkHoldings,
+#'     returnsDataPath = "data/returns.feather",
+#'     currentData = existingRiskAttrData,
+#'     availableFunds = fundList,
+#'     assetTbl = assetDetails,
+#'     portfolioMetaData = portfolioMeta,
+#'     returnLength = 36
+#'   )
+#'   print(result$pf)
+#'   print(result$footnote)
+#' }
+#'
+#' @import data.table
+#' @importFrom reticulate py_run_string py$read_feather_file
+#' @export
